@@ -1,0 +1,36 @@
+/* adj.qu */
+
+/* attributes */
+.attribute aa_number {
+  sg.  = "singular number"
+  pl.  = "plural number"
+  du.  = "dual number"
+}
+
+.attribute aa_declension {
+  E  = "E-vovel declension"
+  IE = "IE-vovel declension"
+  R  = "R-vovel declension"
+}
+
+/* implementation */
+.class noun n. {
+  aa_number
+  aa_declension
+}
+
+/* rules */
+.match a_steam {
+  .vocabulary adj.
+}
+
+.match a_number {
+  -r  | pl. R
+  -*  | pl. E
+  -ie | pl. IE
+}
+
+.match adjective adj. {
+  a_steam | sg.
+  a_steam a_number
+}

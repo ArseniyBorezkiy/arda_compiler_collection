@@ -1,0 +1,63 @@
+/* noun.qu */
+
+/* attributes */
+.attribute an_owner {
+  0p.        = "independent"
+  1p.sg.s.   = "1-st single person's"
+  2p.sg.f.s. = "2-nd single familiar person's"
+  2p.sg.r.s. = "2-nd single respectfully person's"
+  3p.sg.s.   = "3-rd single person's"
+}
+
+.attribute an_declension {
+  E  = "E-vovel declension"
+  IE = "IE-vovel declension"
+  R  = "R-vovel declension"
+}
+
+.attribute an_number {
+  sg.  = "singular number"
+  pl.  = "plural number"
+  du.  = "dual number"
+}
+
+.attribute an_has_vowel {
+  h.c.w.i.  = "has connective vowel (i)"
+}
+
+/* implementation */
+.class noun n. {
+  an_owner
+  an_number
+  an_declension
+  an_has_vowel
+}
+
+/* rules */
+.match n_steam {
+  .vocabulary n.
+}
+
+.match n_number {
+  -r  | pl. R
+  -*  | pl. E
+  -ie | pl. IE
+}
+
+.match n_vowel {
+ -(#)i- | h.c.w.i.
+ -*-
+}
+
+.match n_owner {
+  -nya- | 1p.sg.s.
+  -tya- | 2p.sg.f.s.
+  -lya- | 2p.sg.r.s.
+  -rya- | 3p.sg.s.
+}
+
+.match noun {
+  n_steam | sg. 0p.
+  n_steam n_number | 0p.
+  n_steam n_vowel n_owner n_number
+}

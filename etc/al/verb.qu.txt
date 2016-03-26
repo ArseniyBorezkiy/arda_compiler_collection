@@ -1,0 +1,180 @@
+/* verb.qu */
+.language quenya 1.0
+
+/* attributes */
+.attribute avb_time {
+  inf.t.    = "infinitive"
+  aor.t.    = "aorist"
+  imp.t.    = "imperative"
+  pr.t.     = "present continuous"
+  p.t.      = "past continuous"
+  f.t.      = "future"
+  pfct.t.   = "perfect"
+  paf.t.    = "past future"
+}
+
+.attribute avb_subject {
+  1p.sg.s.  = "1-st singular subject"
+  2ip.sg.s. = "2-nd intimate singular subject"
+  2fp.sg.s. = "2-nd formal singular subject"
+  3p.sg.s.  = "3-rd singular subject"
+  1p.dui.s. = "1-st dual inclusive subject"
+  1p.due.s. = "1-st dual exclusive subject"
+  1p.pli.s. = "1-st plural inclusive subject"
+  1p.ple.s. = "1-st plural exclusive subject"
+  3p.pl.s.  = "3-rd plural subject"
+}
+
+.attribute avb_object {
+  1p.sg.o.  = "1-st single object"
+  2ip.sg.o. = "2-nd intimate singular object"
+  2fp.sg.o. = "2-nd formal singular object"
+  3p.sg.o.  = "3-rd single object"
+  3p.pl.o.  = "3-rd plural object"
+}
+
+.attribute avb_vowel_type {
+  st.s.w.   = "steam short vowel"
+  st.l.w.   = "steam long vowel"
+}
+
+.attribute avb_augment {
+  aug.      = "augment"
+  aug.no.   = "no augment"
+}
+
+.attribute avb_augment_type {
+  aug.sep.  = "separated augment type"
+  aug.fus.  = "fused augment type"
+}
+
+.attribute avb_conjugation {
+  A         = "A-steam verb"
+  B         = "basic verb"
+  U         = "U-steam verb"
+}
+
+.attribute avb_ending {
+  end.      = "with subject or object"
+  end.no.   = "without subject or object"
+}
+
+.attribute avb_prefix {
+  pfx.      = "with prefix"
+  pfx.no.   = "without prefix"
+}
+
+/* implementation */
+.class verb {
+  avb_time
+  avb_subject
+  avb_object
+  avb_ending
+  avb_vowel_type
+  avb_augment
+  avb_augment_type
+  avb_conjugation
+}
+
+/* rules */
+.match vb_long_subject {
+  +nye  | 1p.sg.s.
+  +tye  | 2ip.sg.s.
+  +lye  | 2fp.sg.s.
+  +se   | 3p.sg.s.
+  +ngwe | 1p.dui.s.
+  +nque | 1p.dui.s.
+  +mme  | 1p.due.s.
+  +lve  | 1p.pli.s.
+  +lwe  | 1p.pli.s.
+  +lme  | 1p.ple.s.
+  +lte  | 3p.pl.s.
+  +nte  | 3p.pl.s.
+}
+
+.match vb_short_subject {
+  +n | 1p.sg.s.
+  +t | 2ip.sg.s.
+  +l | 2fp.sg.s.
+}
+
+.match vb_object {
+  +n | 1p.sg.o.
+  +t | 2ip.sg.o.
+  +l | 2fp.sg.o.
+  +s | 3p.sg.o.
+  +t | 3p.pl.o.
+}
+
+.match vb_time {
+  /* A conjugation */
+  +a      | A inf.t.
+  +a      | A aor.t.
+  +a      | A imp.t.
+  +ea     | A pr.t. st.l.w.
+  +ane    | A p.t.
+  +uva    | A f.t.
+  +ie     | A pfct.t. st.l.w.
+  +umne   | A paf.t.
+  /* Basic conjugation */
+  +e      | B inf.t. end.no.
+  +ita    | B inf.t. end.
+  +e      | B aor.t. end.no.
+  +i      | B aor.t. end.
+  +e      | B imp.t.
+  +a      | B imp.t.
+  +a      | B pr.t. st.l.w.
+  +mne    | B p.t. fxn.no. .rappend(.next, m)
+  +nne    | B p.t. fxn.no. .rappend(.next, n)
+  +rne    | B p.t. fxn.no. .rappend(.next, r)
+  +lle    | B p.t. fxn.no. .rappend(.next, l)
+  -#N+e   | B p.t. fxn.    .rcast(1, .next, denasaled_consonant)
+  +uva    | B f.t.
+  +ie     | B pfct.t. st.l.w.
+  +umne   | B paf.t.
+  /* U conjugation */
+  +o      | U inf.t.
+  -#+we   | U aor.t. end.no.
+  -*+ue   | U aor.t. end.no.
+  -#+wi   | U aor.t. end.
+  -*+ui   | U aor.t. end.
+  -#+wa   | U pr.t. st.l.w.
+  -*+ua   | U pr.t. st.l.w.
+  +une    | U p.t.
+  +uva    | U f.t.
+  +uuva   | U f.t.
+  -#+wie  | U pfct.t. st.l.w.
+  -*+ie   | U pfct.t. st.l.w.
+}
+
+.match vb_augment {
+  +@ | aug. aug.sep.
+  +^ | aug. aug.fus.
+  -  | aug.no.
+}
+
+.match vb_endings {
+  vb_long_subject vb_object | end.
+  vb_short_subject          | end.
+  -                         | end.no.
+}
+
+.match vb_steam {
+  +#@-   | aug.sep. st.s.w.              .vocabular(vb., vb_steam))
+  +#^-   | aug.sep. st.l.w.              .vocabular(vb., .lcast(2, vb_steam, short_vowel)))
+  +@-    | aug.no. st.s.w.               .vocabular(vb., vb_steam))
+  +^-    | aug.no. st.l.w.               .vocabular(vb., .lcast(1, vb_steam, short_vowel)))
+  -^+-   | aug. pfx.no. aug.fus. st.s.w. .vocabular(vb., .lcast(1, vb_steam, short_vowel)))
+}
+
+.match vb_prefix {
+  +-     | pfx. aug.no.       .vocabular(pr., vb_prefix)
+  +#-    | pfx. aug.sep.      .vocabular(pr., vb_prefix)
+  +*-    | pfx. aug.no.       .vocabular(pr., vb_prefix)
+  -^+-   | pfx. aug. aug.fus. .vocabular(pr., .lcast(1, vb_prefix, short_vowel))
+  -      | pfx.no.
+}
+
+.match verb {
+  vb_augment vb_prefix vb_steam vb_time vb_endings
+}

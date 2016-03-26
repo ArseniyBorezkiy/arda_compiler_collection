@@ -1,0 +1,98 @@
+/* common.qu */
+.language quenya 1.0
+
+/* vowels */
+.atom @ short_vowel {
+  a   = "tehta (a)"
+  e   = "tehta (e)"
+  i   = "tehta (i)"
+  o   = "tehta (o)"
+  u   = "tehta (u)"
+}
+
+.atom % diphthong_vowel {
+  ai  = "diphthong (ai)"
+  oi  = "diphthong (oi)"
+  ui  = "diphthong (ui)"
+  au  = "diphthong (au)"
+  eu  = "diphthong (eu)"
+  iu  = "diphthong (iu)"
+}
+
+.atom ^ long_vowel : diphthong_vowel {
+  aa  = "long tehta (a)"
+  ee  = "long tehta (e)"
+  ii  = "long tehta (i)"
+  oo  = "long tehta (o)"
+  uu  = "long tehta (u)"
+}
+
+.atom * vowel : short_vowel long_vowel { }
+
+/* consonants */
+.atom #1 single_consonant {
+  s   = "silme"
+  n   = "numen"
+  m   = "malta"
+}.
+
+.atom #2 double_consonant {
+  ss  = "esse"
+  nn  = "long numen"
+  mm  = "long malta"
+}
+
+.atom #n denasaled_consonant {
+  t   = "tinco"
+  p   = "parma"
+  c   = "calma"
+  qu  = "quesse"
+  w   = "vilya"
+}
+
+.atom #N nasaled_consonant {
+  nt  = "anto"
+  mp  = "ampa"
+  nc  = "anca"
+  nqu = "unque"
+  ngw = "ngwalme"
+  nd  = "ando"
+  mb  = "umbar"
+  nq  = "anga"
+  ngw = "ungwe"
+  ng  = "ngoldo"
+}
+
+.atom #h deaspirate_consonant {
+  l   = "lambe"
+  r   = "romen"
+}
+
+.atom #H aspirate_consonant {
+  hl  = "hwesta sindarinwa + lambe"
+  hr  = "hwesta sindarinwa + romen"
+}
+
+.atom #$ soft_consonant {
+  ty  = "soft tinco"
+  ny  = "soft numen"
+  ly  = "soft lambe"
+  ry  = "soft romen"
+  hy  = "soft hyarmen"
+}
+
+.atom #~ other_consonant {
+  th  = "thule"
+  f   = "formen"
+  x   = "harma"
+  hw  = "hwesta"
+  rd  = "arda"
+  ld  = "alda"
+  v   = "vala"
+  h   = "hyarmen"
+}
+
+.atom # consonant : single_consonant double_consonant
+                    denasaled_consonant nasaled_consonant
+                    deaspirate_consonant aspirate_consonant
+                    soft_consonant other_consonant { }

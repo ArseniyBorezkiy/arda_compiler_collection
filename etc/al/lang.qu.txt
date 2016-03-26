@@ -1,0 +1,5 @@
+/* lang.qu */
+
+.language quenya 1.0
+
+.include etc.qu.txt
