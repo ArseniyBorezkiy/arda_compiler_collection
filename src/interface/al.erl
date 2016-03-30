@@ -8,21 +8,20 @@
 % API
 -export ([
           % external interface
-          start/5,
+          start/2,
           % internal callback
-          run/4
+          run/1
          ]).
 
 % =============================================================================
 % API
 % =============================================================================
 
-start (Server, Target, Rule, SrcPrefix, DstPrefix) ->
-  case rpc:call (Server, al, run, [ Target, Rule, SrcPrefix, DstPrefix ]) of
+start (Node, Target) ->
+  case rpc:call (Node, ?MODULE, fun run/1, [ Target ]) of
     { badrpc, _ } -> -1;
     ok -> 0
   end.
 
-run (Target, Rule, SrcPrefix, DstPrefix) ->
-  Dir = file:get_cwd (),
-  debug:log (0, "aaaaaaa").
+run (Target) ->
+  dispatcher:compile (Target).

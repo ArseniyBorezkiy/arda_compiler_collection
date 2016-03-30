@@ -26,29 +26,48 @@
 % =============================================================================
 
 % APPLICATION
-start (_, [ LogName ]) ->
-  start_link([ LogName ]).
+start (_, Args) ->
+  start_link (Args).
+
 stop (_) -> ok.
 
 % DIRECT START
 start_link (Args) ->
-    supervisor:start_link(?MODULE, Args).
+    supervisor:start_link (?MODULE, Args).
 
 % OTP GEN SUPERVISOR
-init ([ LogName ]) ->
-  { ok, Cwd } = file:get_cwd (),
-  LogFile = filename:join (Cwd, LogName),
+init (Args) ->
+  { ok, Dir } = file:get_cwd (),
+  Levc = proplists:get_value (log_cl, Args),
+  Levf = proplists:get_value (log_fl, Args),
+  Log  = filename:join (Dir, proplists:get_value (log, Args)),
+  Src  = filename:join (Dir, proplists:get_value (src, Args)),
+  Dst  = filename:join (Dir, proplists:get_value (dst, Args)),
+  Lang = filename:join (Dir, proplists:get_value (lang, Args)),
+  Ref  = proplists:get_value (ref, Args),
   { ok, {{ one_for_one, ?APP_RESTART_COUNT, ?APP_RESTART_INTERVAL }, [
     { debug,
-      { debug, start_link, [ LogFile ] },
+      { debug, start_link, [ Log, Levf, Levc ] },
       transient,
       ?SRV_SHUTDOWN_TIME,
       worker,
-      [ debug ]},
+      [ debug ] },
     { lexer,
-      { lexer, start_link, [] },
+      { lexer, start_link, [ Src, Dst, Lang ] },
       transient,
       ?SRV_SHUTDOWN_TIME,
       worker,
-      [ lexer ]}
+      [ lexer ] },
+    { model,
+      { model, start_link, [] },
+      transient,
+      ?SRV_SHUTDOWN_TIME,
+      worker,
+      [ model ] },
+    { dispatcher,
+      { dispatcher, start_link, [ Ref ] },
+      transient,
+      ?SRV_SHUTDOWN_TIME,
+      worker,
+      [ dispatcher ] }
 	] }}.

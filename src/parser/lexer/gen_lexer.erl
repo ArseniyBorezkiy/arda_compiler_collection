@@ -31,6 +31,7 @@
 
 % HEADERS
 -include ("general.hrl").
+-include ("token.hrl").
 
 % STATE
 -record (file_entry, { dir         :: string (),
@@ -49,12 +50,9 @@
 -record (s, { module  :: atom (),
               server  :: atom (),
               status  :: term (),
+              break   :: string (),
               table   :: ets:tid (token_t ()),
               entries :: list (file_entry_t ()) }).
-
-% TOKEN TYPES
--define (TT_SPLIT, split).
--define (TT_DEFAULT, default).
 
 % =============================================================================
 % API
@@ -65,7 +63,7 @@
 %
 
 start_link (Server, Module) ->
-  gen_server:start_link ({ local, Server }, ?MODULE, [ Module, Server ], []).
+  gen_server:start_link ({ local, Server }, ?MODULE, { Module, Server }, []).
 
 stop (Server) ->
   gen_server:stop (Server).
@@ -90,24 +88,25 @@ include_file (Server, Dir, Name)
 
 load_token (Server, Token, Type)
   when is_list (Token) ->
-  gen_server:call (Server, { token, load, Token, Type }).
+  gen_server:cast (Server, { token, load, Token, Type }).
 
 next_token (Server) ->
   case gen_server:call (Server, { token, next }) of
     { ?TT_DEFAULT, "" } -> next_token (Server);
     { Type, Token } -> { Type, Token };
-    eot -> { ?TT_DEFAULT, "" }
+    eot -> { ?TT_EOT, "" }
   end.
 
 % =============================================================================
 % GEN SERVER CALLBACKS
 % =============================================================================
 
-init ([ Module, Server ]) ->
+init ({ Module, Server }) ->
   process_flag (trap_exit, true),
   Table = ets:new ('token storage', [ set, private ]),
   State = #s { module  = Module,
                server  = Server,
+               break   = undefined,
                table   = Table,
                status  = ok,
                entries = [] },
@@ -134,7 +133,7 @@ code_change (_, State, _) ->
 
 handle_call ({ get_status, Variant }, _, State) ->
   case State#s.entries of
-    [] -> { reply, undefined, State };
+    [] -> { reply, "end of text", State };
     [ Active | _ ] ->
       Dir    = Active#file_entry.dir,
       Name   = Active#file_entry.name,
@@ -142,24 +141,28 @@ handle_call ({ get_status, Variant }, _, State) ->
       Column = Active#file_entry.column,
       { Status, Error } =
         case State#s.status of
-          ok -> { "ok", "" };
-          { error, Message }  -> { "error", Message }
+          ok -> { "", "" };
+          { error, Message }  -> { "error ", format ("~n" ++ Message, []) }
         end,
       Result =
         case Variant of
           summary ->
-            Format = "~p in ~p (line: ~p, column: ~p)~n",
+            Format = "~sin ~s (line: ~p, column: ~p)~n",
             Args   = [ Status, Name, Line, Column ],
             format (Format, Args);
           report ->
-            Format = "~p in ~p (line: ~p, column: ~p)~n"
-                     "dir: ~p~n"
-                     "~p",
+            Format = "~sin ~s (line: ~p, column: ~p)~n"
+                     "dir: ~s"
+                     "~s",
             Args   = [ Status, Name, Line, Column, Dir, Error ],
             format (Format, Args)
         end,
       { reply, Result, State }
   end;
+
+handle_call ({ token, next }, _, #s { break = Break } = State)
+  when Break =/= undefined ->
+  { reply, { ?TT_BREAK, Break }, State#s { break = undefined }};
 
 handle_call ({ token, next }, _, State) ->
   Entries = State#s.entries,
@@ -174,20 +177,23 @@ handle_call ({ token, next }, _, State) ->
         Line      = Active#file_entry.line,
         Column    = Active#file_entry.column,
         Table     = State#s.table,
-        Splitters = ets:select (Table, [{ { '$1', ?TT_SPLIT } , [], ['$1'] }]),
-        { Data, NewLine, NewColumn } = parse (Handle, Table, Line, Column, Splitters, ""),
+        Splitters = ets:select (Table, [{ { '$1', ?TT_SEPARATOR } , [], ['$1'] }]),
+        Breaks    = ets:select (Table, [{ { '$1', ?TT_BREAK } , [], ['$1'] }]),
+        { Data, NewLine, NewColumn, Break } = parse (Handle, Table, Line, Column, Splitters, Breaks, ""),
         NewActive = Active#file_entry { line = NewLine, column = NewColumn },
         case Data of
-          { ok, Token, Type } ->
+          { ok, Token, Type } when Break =:= undefined ->
             { { Type, Token }, State#s { entries = [ NewActive | Tail ] }};
+          { ok, Token, Type } when Break =/= undefined ->
+            { { Type, Token }, State#s { entries = [ NewActive | Tail ], break = Break }};
           { eof, Token, Type } ->
             { { Type, Token }, State#s { entries = Tail } };
           { error, ambiguity } ->
-            Error = format ("splitters ambiguity~p~n", [ Splitters ]),
+            Error = format ("splitters ambiguity ~p", [ Splitters ]),
             Module:error (State#s.server, Error),
             { eot, State#s { status = { error, Error } } };
           { error, file } ->
-            Error = format ("can not read from stream~n", []),
+            Error = format ("can not read from stream", []),
             Module:error (State#s.server, Error),
             { eot, State#s { status = { error, Error } } }
         end
@@ -201,7 +207,7 @@ handle_cast ({ token, load, Token, Type }, State) ->
       ets:insert (Table, { Token, Type }),
       { noreply, State };
     [ { Token, OtherType } | _ ] ->
-      Format = "token redefinition ~p of type ~p to type ~p~n",
+      Format = "token redefinition ~p of type ~p to type ~p",
       Error  = format (Format, [ Token, Type, OtherType ]),
       Module = State#s.module,
       Module:error (State#s.server, Error),
@@ -214,8 +220,8 @@ handle_cast ({ include, Dir, Name }, State) ->
     case file:open (File, [ read ]) of
       { ok, IoDevice } -> { IoDevice, State#s.status };
       _ ->
-        Format = "can not open file: ~p~n",
-        Error  = format (Format, [ Name ]),
+        Format = "can not open file: ~p",
+        Error  = format (Format, [ File ]),
         Module = State#s.module,
         Module:error (State#s.server, Error),
         { undefined, { error, Error } }
@@ -231,41 +237,52 @@ handle_cast ({ include, Dir, Name }, State) ->
 format (Format, Args) ->
   lists:flatten (io_lib:format (Format, Args)).
 
-parse (Handle, Table, Line, Column, Splitters, Token) ->
+parse (Handle, Table, Line, Column, Splitters, Breaks, Token) ->
   case file:read (Handle, 1) of
     { ok, Char } ->
-      NewToken = Token ++ [ Char ],
+      NewToken = Token ++ Char,
       % synchronization
       { NewLine, NewColumn } =
         case Char of
           "\n" -> { Line + 1, 1 };
           _ -> { Line, Column + 1 }
         end,
-      % check for splitters
-      Fun =
-        fun (Splitter) ->
-          case string:rstr (NewToken, Splitter) of
-            0 -> false;
-            N -> { true, N }
-          end
-        end,
-      { TargetToken, IsSplitted, IsAmbiguity } =
-        case lists:filtermap (Fun, Splitters) of
-          [] -> { NewToken, false, false };
-          [ N ] -> { string:sub_string (NewToken, 1, N - 1), true, false };
-          [ _ | _ ] -> { NewToken, false, true }
-        end,
-      % check for ambiguity
-      case IsAmbiguity of
-        true  -> { error, ambiguity };
-        false ->
-          case IsSplitted of
-            false -> parse (Handle, Table, NewLine, NewColumn, Splitters, TargetToken);
-            true  ->
-              % find lexem
-              case ets:lookup (Table, TargetToken) of
-                [] -> { ok, TargetToken, ?TT_DEFAULT };
-                [ { TargetToken, TokenType } ] -> { ok, TargetToken, TokenType }
+      case Char of
+        "\"" ->
+          read_string (Handle, Line, Column, "");
+        _ ->
+          % check for splitters
+          Fun =
+            fun (Splitter) ->
+              case string:rstr (NewToken, Splitter) of
+                0 -> false;
+                N -> { true, N }
+              end
+            end,
+          { TargetToken, Splitter, IsSplitted, IsAmbiguity } =
+            case lists:filtermap (Fun, Splitters ++ Breaks) of
+              [] -> { NewToken, "", false, false };
+              [ N ] -> { string:sub_string (NewToken, 1, N - 1), string:substr (NewToken, N), true, false };
+              [ _ | _ ] -> { NewToken, "", false, true }
+            end,      
+          % check for ambiguity
+          case IsAmbiguity of
+            true  -> { error, ambiguity };
+            false ->
+              case IsSplitted of
+                false -> parse (Handle, Table, NewLine, NewColumn, Splitters, Breaks, TargetToken);
+                true  ->
+                  % find lexem
+                  IsBreak = lists:member (Splitter, Breaks),
+                  BreakInfo =
+                    case IsBreak of
+                      false -> undefined;
+                      true  -> Splitter
+                    end,
+                  case ets:lookup (Table, TargetToken) of
+                    [] -> {{ ok, TargetToken, ?TT_DEFAULT }, Line, Column, BreakInfo };
+                    [ { TargetToken, TokenType } ] -> {{ ok, TargetToken, TokenType }, Line, Column, BreakInfo }
+                  end
               end
           end
       end;
@@ -276,6 +293,15 @@ parse (Handle, Table, Line, Column, Splitters, Token) ->
           [] -> ?TT_DEFAULT;
           [ { Token, TokenType } ] -> TokenType
         end,
-      { eof, Token, Type };
-    { error, _ } -> { error, file }
+      {{ eof, Token, Type }, Line, Column, undefined };
+    { error, _ } -> {{ error, file }, Line, Column, undefined }
+  end.
+
+read_string (Handle, Line, Column, String) ->
+  case file:read (Handle, 1) of
+    { ok, "\"" } -> {{ ok, String, ?TT_STRING }, Line, Column + 1, undefined };
+    { ok, "\n" } -> read_string (Handle, Line + 1, 1, String ++ "\n");
+    { ok, Char } -> read_string (Handle, Line, Column + 1, String ++ Char);
+    eof -> {{ ok, String, ?TT_STRING }, Line, Column, undefined };
+    { error, _ } -> {{ error, file }, Line, Column, undefined }
   end.

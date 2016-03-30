@@ -1,5 +1,5 @@
 /* common.qu */
-.language quenya 1.0
+.language quenya 1 1
 
 /* vowels */
 .atom @ short_vowel {

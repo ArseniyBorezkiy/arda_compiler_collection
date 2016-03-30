@@ -1,5 +1,4 @@
 /* lang.qu */
 
-.language quenya 1.0
-
-.include etc.qu.txt
+.language quenya 1 1
+.include "etc.qu.txt"

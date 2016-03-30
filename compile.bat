@@ -13,10 +13,8 @@ SET ECOOK=abc
 
 SET ROOT=%ROOT:\=/%
 SET TARGET=%1
-SET RULE=%2
-SET PREFIX=priv
 SET ARGUMENTS="al:start(
-SET ARGUMENTS=%ARGUMENTS%'%SNODE%',\"%TARGET%\",\"%RULE%\",\"%PREFIX%\",\"%PREFIX%\"
+SET ARGUMENTS=%ARGUMENTS%'%SNODE%',\"%TARGET%\"
 SET ARGUMENTS=%ARGUMENTS%)"
 
 start "server" "erl" -name %SNODE% -pa %ROOT%ebin -config %ROOT%general.config -setcookie %ECOOK% -eval "application:start(al)"
