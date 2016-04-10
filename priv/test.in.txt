@@ -1,1 +1,3 @@
-hi
+/* test.in */
+
+lasta ampa

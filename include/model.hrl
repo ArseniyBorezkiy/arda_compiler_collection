@@ -18,11 +18,19 @@
 %
 
 -record (entity, { name :: string (),
-                   type :: atom () }).
+                   type :: atom (),
+                   tag  :: string () }).
+
+-type entity_t () :: # entity { } .
 
 -record (property, { name   :: string (),
                      value  :: string (),
                      entity :: string () }).
+
+-type property_t () :: # property { } .
+
+-record (member, { class  :: string (),
+                   member :: string () }).
 
 %
 % rule storage
@@ -33,8 +41,9 @@
 
 -record (match,  { name :: string () }).
 
--type match_instance_t () :: { Match   :: string (),
-                               Ordinal :: unsigned_t () } .
+-type match_instance_t () :: { Match    :: string (),
+                               OrdinalX :: unsigned_t (),
+                               OrdinalY :: unsigned_t () } .
 
 -record (rule,   { instance :: match_instance_t (),
                    name     :: string () }).
@@ -47,6 +56,19 @@
                   entity   :: string (),
                   property :: string () }).
 
+%
+% vocabular storage
+%
+
+-record (stem, { stem       :: string (),
+                 vocabulary :: string () }).
+
+-type characteristic_instance_t () :: { Stem     :: string (),
+                                        Property :: string () } .
+
+-record (characteristic, { instance   :: characteristic_instance_t (),
+                           vocabulary :: string () }).
+
 % =============================================================================
 % CONSTANTS
 % =============================================================================
@@ -58,5 +80,7 @@
 -define (ET_CLASS, class).
 -define (ET_ATTRIBUTE, attribute).
 -define (ET_ALPHABET, alphabet).
+-define (ET_VOCABULARY, vocabulary).
+-define (ET_MATCH, match).
 
 -endif. % __MODEL_HRL__

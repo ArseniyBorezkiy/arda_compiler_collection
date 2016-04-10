@@ -1,4 +1,53 @@
-/* lang.qu */
+/* test.qu */
 
 .language quenya 1 1
-.include "etc.qu.txt"
+
+.alphabet # consonants {
+	l  = "lambe"
+	s  = "silme"
+	t  = "tinco"
+	p  = "parma"
+	m  = "malta"
+}
+
+.alphabet * vowel {
+	a = "tehta a"
+	o = "tehta o"
+	u = "tehta u"
+	e = "tehta e"
+	i = "tehta i"
+}
+
+.attribute part_of_speech {
+	noun. = "the noun"
+	verb. = "the verb"
+}
+
+.class info {
+	part_of_speech
+}
+
+.match noun {
+	+*
+}
+
+.match verb {
+	+#
+}
+
+.match never {
+	- | verb.
+}
+
+.match main {
+	noun  | noun.
+	verb  | verb.
+	never | noun.
+}
+
+.target main
+
+.vocabulary voc {
+	ampa  noun.
+	lasta verb.
+}

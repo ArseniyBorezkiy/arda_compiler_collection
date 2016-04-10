@@ -102,42 +102,42 @@ do_parse ([ Char0 | Tail ], hold = Mode, Acc)
 do_parse (Rule, Mode, Acc) when Mode == hold orelse Mode == rift ->
   % { ?X, Y } -> { ?X, Y? }
   % { ?X, Y } -> { X, Y? }
-  EntityFilter =
-    fun (#entity { name = Name, type = Type }) ->
-      case string:str (Rule, Name) of
-        1 when Type == ?ET_MASK -> { true, { Name, length (Name) } };
+  AlphabetFilter =
+    fun (#entity { name = Name, type = Type, tag = Tag }) ->
+      case string:str (Rule, Tag) of
+        1 when Type == ?ET_ALPHABET -> { true, { Name, length (Tag) } };
         _ -> false
       end
     end,
-  case lists:filermap (EntityFilter, model:get_entities ()) of
+  case lists:filtermap (AlphabetFilter, model:get_entities ()) of
     [] ->
       debug:log (?DL_WARNING, "unknown mask ~p in ~p", [ Rule, ?MODULE ]),
       error;
-    [ { EntName, EntLen } ] ->
-      Properties = model:get_properties (EntName), 
+    [ { Alphabet, WildcardLen } ] ->
+      Phonemes = model:get_properties (Alphabet), 
       Fun =
         fun
           (Word, Value) ->
-            PropertyFilter =
-              fun (Name, _Value) ->
-                case string:str (Word, Name) of
-                  1 -> { true, { Name, length (Name) } };
+            PhonemesFilter =
+              fun (#property { name = Phoneme }) ->
+                case string:str (Word, Phoneme) of
+                  1 -> { true, Phoneme };
                   _ -> false
                 end
               end,
-            case lists:filtermap (PropertyFilter, Properties) of
+            case lists:filtermap (PhonemesFilter, Phonemes) of
               [] -> false;
-              [ { PropName, PropLen } ] ->
+              [ Phoneme ] ->
                 case Mode of
-                  hold -> { Word, Value ++ PropName };
-                  rift -> { lists:nthtail (PropLen, Word), Value ++ PropName }
+                  hold -> { Word, Value ++ Phoneme };
+                  rift -> { lists:nthtail (length (Phoneme), Word), Value ++ Phoneme }
                 end;
               _ ->
-                debug:log (?DL_WARNING, "ambiguity property ~p in ~p", [ Word, ?MODULE ]),
+                debug:log (?DL_WARNING, "property ambiguity ~p in ~p", [ Word, ?MODULE ]),
                 error
             end
         end,
-      do_parse (lists:nthtail (EntLen, Rule), Mode, [ Fun | Acc ]);
+      do_parse (lists:nthtail (WildcardLen, Rule), Mode, [ Fun | Acc ]);
     _ ->
       debug:log (?DL_WARNING, "ambiguity mask ~p in ~p", [ Rule, ?MODULE ]),
       error

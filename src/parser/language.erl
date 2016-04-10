@@ -40,6 +40,7 @@ parse () ->
   lexer:load_token (".match",      ?TT_SECTION),
   lexer:load_token (".alphabet",   ?TT_SECTION),
   lexer:load_token (".vocabulary", ?TT_SECTION),
+  lexer:load_token (".target",     ?TT_SECTION),
   lexer:load_token (".include",    ?TT_SECTION),
   lexer:load_token ("{",  ?TT_CONTENT_BEGIN),
   lexer:load_token ("}",  ?TT_CONTENT_END),
@@ -70,18 +71,6 @@ loop (State) ->
 % main
 %
 
-main (?TT_SECTION, ".language") ->
-  % '.language' name min_version max_version
-  Name       = lexer:next_token (?TT_DEFAULT),
-  MinVersion = lexer:next_token (?TT_DEFAULT),
-  MaxVersion = lexer:next_token (?TT_DEFAULT),
-  Min        = string:to_integer (MinVersion),
-  Max        = string:to_integer (MaxVersion),
-  model:ensure (language, Name),
-  model:ensure ({ version, min }, Min, fun (V) -> V >= Min end),
-  model:ensure ({ version, max }, Max, fun (V) -> V =< Max end),
-  main;
-
 main (?TT_SECTION, ".attribute") ->
   % '.attribute' name '{'
   Name = lexer:next_token (?TT_DEFAULT),
@@ -100,30 +89,52 @@ main (?TT_SECTION, ".class") ->
   erlang:put (base, Name),
   class;
 
+main (?TT_SECTION, ".match") ->
+  % '.class' name '{'
+  Name = lexer:next_token (?TT_DEFAULT),
+  model:create_entity (Name, ?ET_MATCH),
+  lexer:load_token (Name, ?TT_MATCH),
+  lexer:next_token (?TT_CONTENT_BEGIN),
+  erlang:put (base, Name),
+  erlang:put (rule_x, 1),
+  erlang:put (rule_y, 1),
+  match_rule;
+
 main (?TT_SECTION, ".alphabet") ->
   % '.alphabet' wildcard name '{'
   Wildcard = lexer:next_token (?TT_DEFAULT),
   lexer:load_token (Wildcard, ?TT_WILDCARD),
   Name = lexer:next_token (?TT_DEFAULT),
-  model:create_entity (Name, ?ET_ALPHABET),
+  model:create_entity (Name, ?ET_ALPHABET, Wildcard),
   lexer:next_token (?TT_CONTENT_BEGIN),
   erlang:put (base, Name),
   alphabet;
 
-main (?TT_SECTION, ".match") ->
-  % '.class' name '{'
+main (?TT_SECTION, ".vocabulary") ->
+  % '.vocabulary' name '{'
   Name = lexer:next_token (?TT_DEFAULT),
-  model:create_match (Name),
-  lexer:load_token (Name, ?TT_MATCH),
+  model:create_entity (Name, ?ET_VOCABULARY),
   lexer:next_token (?TT_CONTENT_BEGIN),
   erlang:put (base, Name),
-  erlang:put (rule, 1),
-  match_rule;
-
-main (?TT_SECTION, ".vocabulary") ->
-  % '.vocabulary' '{'
-  lexer:next_token (?TT_CONTENT_BEGIN),
   vocabular_entry;
+
+main (?TT_SECTION, ".language") ->
+  % '.language' name min_version max_version
+  Name       = lexer:next_token (?TT_DEFAULT),
+  MinVersion = lexer:next_token (?TT_DEFAULT),
+  MaxVersion = lexer:next_token (?TT_DEFAULT),
+  Min        = string:to_integer (MinVersion),
+  Max        = string:to_integer (MaxVersion),
+  model:ensure (language, Name),
+  model:ensure ({ version, min }, Min, fun (V) -> V >= Min end),
+  model:ensure ({ version, max }, Max, fun (V) -> V =< Max end),
+  main;
+
+main (?TT_SECTION, ".target") ->
+  % '.target' name
+  Name = lexer:next_token (?TT_MATCH),
+  model:ensure (target, Name),
+  main;
 
 main (?TT_SECTION, ".include") ->
   % '.include' file
@@ -158,7 +169,8 @@ attribute (Type, Token) -> default (Type, Token, attribute).
 
 class (?TT_ATTRIBUTE, Member) ->
   % member
-  % TODO: ...
+  Entity = erlang:get (base),
+  model:create_property (Entity, #member { class = Entity, member = Member }),
   class;
 
 class (Type, Token) -> default (Type, Token, class).
@@ -167,8 +179,13 @@ class (Type, Token) -> default (Type, Token, class).
 % alphabet
 %
 
-alphabet (?TT_DEFAULT, Alpha) ->
+alphabet (?TT_DEFAULT, Phoneme) ->
   % alpha '=' string
+  lexer:load_token (Phoneme, ?TT_PHONEME),
+  lexer:next_token (?TT_ASSIGNMENT),
+  Value  = lexer:next_token (?TT_STRING),
+  Entity = erlang:get (base),
+  model:create_property (Entity, Phoneme, Value),
   alphabet;
 
 alphabet (Type, Token) -> default (Type, Token, alphabet).
@@ -178,37 +195,51 @@ alphabet (Type, Token) -> default (Type, Token, alphabet).
 %
 
 match_rule (?TT_BREAK, "\n") ->
-  Ordinal = erlang:get (rule),
-  erlang:put (rule, Ordinal + 1),
+  OrdinalY = erlang:get (rule_y),
+  erlang:put (rule_x, 1),
+  erlang:put (rule_y, OrdinalY + 1),
   match_rule;
 
 match_rule (?TT_MATCH, Rule) ->
   % separated rule
-  Match   = erlang:get (base),
-  Ordinal = erlang:get (rule),
-  model:create_property (Match, { Ordinal, Rule }, { subrule, Rule }),
+  Match    = erlang:get (base),
+  OrdinalX = erlang:get (rule_x),
+  OrdinalY = erlang:get (rule_y),
+  model:create_rule (Match, OrdinalX, OrdinalY, Rule),
+  erlang:put (rule_x, OrdinalX + 1),
   match_rule;
 
-match_rule (?TT_DEFAULT, Rule) ->
+match_rule (?TT_DEFAULT, Expression) ->
   % regular expression
-  Filters = rule:parse (Rule),
-  Match   = erlang:get (base),
-  Ordinal = erlang:get (rule),
-  model:create_property (Match, { Ordinal, Rule }, { filters, Filters }),
+  Filters  = rule:parse (Expression),
+  Match    = erlang:get (base),
+  OrdinalX = erlang:get (rule_x),
+  OrdinalY = erlang:get (rule_y),
+  model:create_regexp (Match, OrdinalX, OrdinalY, Expression, Filters),
+  erlang:put (rule_x, OrdinalX + 1),
   match_rule;
 
 match_rule (?TT_GUARG, "|") ->
   % '|'
+  erlang:put (rule_x, 1),
   match_guard;
 
 match_rule (Type, Token) -> default (Type, Token, match_rule).
 
 match_guard (?TT_BREAK, "\n") ->
-  Ordinal = erlang:get (rule),
-  erlang:put (rule, Ordinal + 1),
+  OrdinalY = erlang:get (rule_y),
+  erlang:put (rule_x, 1),
+  erlang:put (rule_y, OrdinalY + 1),
   match_rule;
 
-match_guard (?TT_PROPERTY, Token) ->
+match_guard (?TT_PROPERTY, Property) ->
+  % condition
+  Match    = erlang:get (base),
+  OrdinalX = erlang:get (rule_x),
+  OrdinalY = erlang:get (rule_y),
+  Entity   = model:get_entity_name (Property),
+  model:create_guard (Match, OrdinalX, OrdinalY, Entity, Property),
+  erlang:put (rule_x, OrdinalX + 1),
   match_guard;
 
 match_guard (Type, Token) -> default (Type, Token, match_guard).
@@ -222,7 +253,9 @@ vocabular_entry (?TT_BREAK, "\n") ->
 
 vocabular_entry (?TT_DEFAULT, Stem) ->
   % stem
-  model:vocabular (Stem),
+  Vocabulary = erlang:get (base),
+  model:create_stem (Vocabulary, Stem),
+  erlang:put (stem, Stem),
   vocabular_specification;
 
 vocabular_entry (Type, Token) -> default (Type, Token, vocabular_entry).
@@ -230,8 +263,11 @@ vocabular_entry (Type, Token) -> default (Type, Token, vocabular_entry).
 vocabular_specification (?TT_BREAK, "\n") ->
   vocabular_entry;
 
-vocabular_specification (?TT_PROPERTY, Token) ->
+vocabular_specification (?TT_PROPERTY, Property) ->
   % e.g. 'vb.', 'B' ...
+  Vocabulary = erlang:get (base),
+  Stem       = erlang:get (stem),
+  model:create_characteristic (Vocabulary, Stem, Property),
   vocabular_specification;
 
 vocabular_specification (Type, Token) -> default (Type, Token, vocabular_specification).

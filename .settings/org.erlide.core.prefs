@@ -1,7 +1,7 @@
-backend_version=18.0
+backend_version=17.0
 eclipse.preferences.version=1
 external_includes=
 external_modules=
 include_dirs=include;
 output_dir=ebin
-source_dirs=src;src/interface;src/parser;src/parser/lexer;src/auxiliary;src/storage;
+source_dirs=src/interface;src/parser;src/parser/lexer;src/auxiliary;src/storage;

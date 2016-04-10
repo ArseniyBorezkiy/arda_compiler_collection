@@ -18,9 +18,10 @@
 % =============================================================================
 
 start (Node, Target) ->
-  case rpc:call (Node, ?MODULE, fun run/1, [ Target ]) of
-    { badrpc, _ } -> -1;
-    ok -> 0
+  case rpc:call (Node, ?MODULE, run, [ Target ]) of
+    ok -> 0;
+    error -> -1;
+    { badrpc, _ } -> -1
   end.
 
 run (Target) ->

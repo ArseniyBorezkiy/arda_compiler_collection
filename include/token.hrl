@@ -37,6 +37,8 @@
 
 -define (TT_ASSIGNMENT,    assignment).
 -define (TT_GUARG,         guard).
+
 -define (TT_WILDCARD,      wildcard).
+-define (TT_PHONEME,       phoneme).
 
 -endif. % __TOKEN_HRL__

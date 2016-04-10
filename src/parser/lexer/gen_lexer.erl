@@ -280,8 +280,8 @@ parse (Handle, Table, Line, Column, Splitters, Breaks, Token) ->
                       true  -> Splitter
                     end,
                   case ets:lookup (Table, TargetToken) of
-                    [] -> {{ ok, TargetToken, ?TT_DEFAULT }, Line, Column, BreakInfo };
-                    [ { TargetToken, TokenType } ] -> {{ ok, TargetToken, TokenType }, Line, Column, BreakInfo }
+                    [] -> {{ ok, TargetToken, ?TT_DEFAULT }, NewLine, NewColumn, BreakInfo };
+                    [ { TargetToken, TokenType } ] -> {{ ok, TargetToken, TokenType }, NewLine, NewColumn, BreakInfo }
                   end
               end
           end

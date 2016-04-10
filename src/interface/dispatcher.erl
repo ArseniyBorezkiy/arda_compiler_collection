@@ -75,7 +75,7 @@ code_change (_, State, _) ->
 
 handle_call ({ compile, File }, From, State) ->
   % start and register new process
-  { Pid, Ref } = proc_lib:spawn_monitor (?MODULE, process, [ File ]),
+  { Pid, Ref } = erlang:spawn_monitor (?MODULE, process, [ File ]),
   Dict = dict:store ({ Pid, Ref }, { From, File }, State#s.dict),
   { noreply, State#s { dict = Dict } }.
 
@@ -86,13 +86,17 @@ handle_cast ({ error, fatal }, State) ->
 
 handle_info ({ 'DOWN', Ref, process, Pid, Reason }, State) ->
   % return
-  { From, Name } = dict:fetch ({ Pid, Ref }, State#s.dict),
-  gen_server:reply (From, Reason),
+  { From, Name } = dict:fetch ({ Pid, Ref }, State#s.dict),  
   case Reason of
     error ->
-      debug:warning (?MODULE, "~p error in ~p", [ Name, Pid ]);
-    { result, _ } ->
-      debug:success (?MODULE, "~p dispatched in ~p", [ Name, Pid ])
+      debug:warning (?MODULE, "~p error in ~p", [ Name, Pid ]),
+      gen_server:reply (From, error);
+    { error, Error } ->
+      debug:error (?MODULE, "~p error in ~p: ~p", [ Name, Pid, Error ]),
+      gen_server:reply (From, error);
+    { result, Result } ->
+      debug:success (?MODULE, "~p dispatched in ~p", [ Name, Pid ]),
+      gen_server:reply (From, Result)
   end,
   Dict = dict:erase ({ Pid, Ref }, State#s.dict),
   { noreply, State#s { dict = Dict } }.
@@ -101,19 +105,24 @@ handle_info ({ 'DOWN', Ref, process, Pid, Reason }, State) ->
 % INTERNAL FUNCTIONS
 % =============================================================================
 
-process (File) ->
+process (File) ->  
   lexer:register (src, File),
   debug:section (?MODULE, "compiling ~p", [ File ]),
   Reason =
     try sentence:compile () of
       Result ->
         debug:success (?MODULE, "compilation finished for ~p", [ File ]),
-        { result, Result }
+        Result
     catch
-      _:_ ->
+      throw:_ ->
         Status = lexer:get_status (),
         debug:warning (?MODULE, "compilation failed for ~p~n~s", [ File, Status ]),
-        error
+        error;
+      error:Error ->
+        Status = lexer:get_status (),
+        Stack  = erlang:get_stacktrace (),
+        debug:warning (?MODULE, "compilation failed for ~p~n~s", [ File, Status ]),
+        { error, { Error, Stack } }
     after
       lexer:unregister ()
     end,
