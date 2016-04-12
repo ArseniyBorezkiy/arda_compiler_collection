@@ -26,6 +26,9 @@
           get_entity_name/1,
           get_subrules/1,
           get_guards/2,
+          get_stems/0,
+          get_vocabularies/1,
+          get_characteristics/2,
           ensure/1,
           ensure/2,
           ensure/3
@@ -139,24 +142,41 @@ get_subrules (Match) ->
   Ordinals1 = gen_server:call (?MODULE, { rule, select, Mask1, '$1' }),
   Mask2     = #regexp { instance = { Match, '_', '$1' }, expression = '_', filters = '_' },
   Ordinals2 = gen_server:call (?MODULE, { rule, select, Mask2, '$1' }),
-  OrdinalsY = Ordinals1 ++ Ordinals2,
+  OrdinalsY = sets:to_list(sets:from_list(lists:sort (Ordinals1 ++ Ordinals2))),
   Fun =
     fun (OrdinalY) ->
       SubMask1   = #rule { instance = { Match, '$1', OrdinalY }, name = '_' },
       SubRules1  = gen_server:call (?MODULE, { rule, select, SubMask1, '$_' }),
       SubMask2   = #regexp { instance = { Match, '$1', OrdinalY }, expression = '_', filters = '_' },
       SubRules2  = gen_server:call (?MODULE, { rule, select, SubMask2, '$_' }),
+      GetX       =
+        fun
+          (#rule { instance = { _, OrdinalX, _ } }) -> OrdinalX;
+          (#regexp { instance = { _, OrdinalX, _ } }) -> OrdinalX
+        end,
       Comparator =
-        fun ({ _, { _, OrdinalX1, _ } }, { _, { _, OrdinalX2, _ } }) ->
-          OrdinalX1 > OrdinalX2
+        fun (E1, E2) ->
+          GetX (E1) < GetX (E2)
         end,
       lists:sort (Comparator, SubRules1 ++ SubRules2)
     end,
   lists:map (Fun, OrdinalsY).
 
 get_guards (Match, OrdinalY) ->
-  Mask = #guard { instance = { Match, '_', OrdinalY }, entity = '$_', property = '$1' },
+  Mask = #guard { instance = { Match, '_', OrdinalY }, entity = '_', property = '$1' },
   gen_server:call (?MODULE, { rule, select, Mask, '$1' }).
+
+get_stems () ->
+  Mask = #stem { stem = '$1', vocabulary = '_' },
+  gen_server:call (?MODULE, { voc, select, Mask, '$1' }).
+
+get_vocabularies (Stem) ->
+  Mask = #stem { stem = Stem, vocabulary = '$1' },
+  gen_server:call (?MODULE, { voc, select, Mask, '$1' }).
+
+get_characteristics (Vocabulary, Stem) ->
+  Mask = #characteristic { instance = { Stem, '$1' }, vocabulary = Vocabulary },
+  gen_server:call (?MODULE, { voc, select, Mask, '$1' }).
 
 %
 % parametres

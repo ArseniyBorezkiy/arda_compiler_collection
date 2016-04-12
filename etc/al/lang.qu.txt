@@ -39,10 +39,12 @@
 	- | verb.
 }
 
+.vocabular stem
+
 .match main {
-	noun  | noun.
-	verb  | verb.
-	never | noun.
+	noun  stem | noun.
+	verb  stem | verb.
+	never stem | noun.
 }
 
 .target main

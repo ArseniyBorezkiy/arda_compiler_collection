@@ -88,6 +88,7 @@ handle_info ({ 'DOWN', Ref, process, Pid, Reason }, State) ->
   % return
   { From, Name } = dict:fetch ({ Pid, Ref }, State#s.dict),  
   case Reason of
+    ok -> gen_server:reply (From, ok);
     error ->
       debug:warning (?MODULE, "~p error in ~p", [ Name, Pid ]),
       gen_server:reply (From, error);
@@ -118,7 +119,7 @@ process (File) ->
         Status = lexer:get_status (),
         debug:warning (?MODULE, "compilation failed for ~p~n~s", [ File, Status ]),
         error;
-      error:Error ->
+      _:Error ->
         Status = lexer:get_status (),
         Stack  = erlang:get_stacktrace (),
         debug:warning (?MODULE, "compilation failed for ~p~n~s", [ File, Status ]),

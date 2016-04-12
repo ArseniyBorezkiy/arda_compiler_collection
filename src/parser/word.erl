@@ -14,15 +14,12 @@
 -include ("model.hrl").
 
 % DEFINITIONS
--record (variant, { match    :: string (),
+-record (variant, { oid      :: list (unsigned_t ()), 
+                    match    :: string (),
                     word_in  :: string (),
                     word_out :: string (),
                     value    :: string (),
-                    guards   :: list (string ()),
-                    level    :: position_t (),
-                    pos_x    :: position_t (),
-                    pos_y    :: position_t (),
-                    phony    :: boolean () }).
+                    guards   :: list (string ()) }).
 
 % =============================================================================
 % API
@@ -31,97 +28,114 @@
 parse (Word) ->
   Table = ets:new ('case storage', [ set, private, { keypos, 2 } ]),
   try
-    [ Rule ] = model:ensure (target),
-    rule (Word, [], Rule, Table, 1),
-    dump (Table, 1),
+    [ Match ] = model:ensure (target),
+    Rule = #rule { instance = { Match, 1, 1 }, name = Match },
+    horizontal ([ Rule ], [], Word, Table, []),
+    dump (Table),
     []
-  catch
-    _:_ -> throw (error)
   after
-    ets:close (Table)
+    ets:delete (Table)
   end.
 
 % =============================================================================
 % INTERNAL FUNCTIONS
 % =============================================================================
 
-rule (Word, Guards, Rule, Table, Level) ->
-  case model:get_subrules (Rule) of
-    [] ->
-      % bad grammar reference
-      debug:warning (?MODULE, "the rule '~s' have not subrules", [ Rule ]),
-      throw (error);
-    Subrules ->
-      % match subrules
-      detail (Level, "rule: ~s, word: ~s | ~p", [ Rule, Word, length (Guards) ]),
-      Vertical =
-        fun (SubruleY) ->
-          Horizontal =
-            fun
-              (_SubruleX, false) -> false;
-              (SubruleX, Subword) ->
-                Subguards = get_subguards (SubruleX),
-                case is_conflict (Guards, Subguards) of
-                  true  -> false;
-                  false ->
-                    // here is wrong
-                    Subwords = clause (SubruleX, Guards ++ Subguards, Subword, Table, Level)
-                end
-            end,
-          lists:foldl (Horizontal, [ Word ], SubruleY)
-        end,
-      lists:map (Vertical, Subrules)
-  end.
-
-clause ({ Expression, X, Y }, Guards, Word, Table, Level)
+horizontal ([], _Guards, _Word, _Table, _OID) -> ok;
+  
+horizontal ([ Expression | Tail ], Guards, Word, Table, OID1)
   when is_record (Expression, regexp) ->
   % single regular expression
   { Match, X, Y } = Expression#regexp.instance,
   Filters = Expression#regexp.filters,
   Text    = Expression#regexp.expression,
+  OID2    = [ X | OID1 ],
   case rule:match (Word, Filters) of
     false ->
       Args = [ Word, Match, X, Y, Text, length (Guards) ],
-      detail (Level, "no match '~s' for ~s (~p,~p): ~s | ~p", Args),
-      false;
+      detail (OID2, " : no match '~s' for ~s (~p,~p): ~s | ~p", Args);
     { true, Subword, Value } ->
       Args = [ Word, Subword, Match, X, Y, Text, Value, length (Guards) ],
-      detail (Level, "match '~s' -> '~s' for ~s (~p,~p): ~s = ~s | ~p", Args),
-      Variant = #variant { match    = Match,
+      detail (OID2, " : match '~s' -> '~s' for ~s (~p,~p): ~s = ~s | ~p", Args),
+      Variant = #variant { oid      = OID2,
+                           match    = Match,
                            word_in  = Word,
                            word_out = Subword,
                            value    = Value,
-                           guards   = Guards,
-                           level    = Level,
-                           pos_x    = X,
-                           pos_y    = Y,
-                           phony    = false },
+                           guards   = Guards },
       ets:insert (Table, Variant),
-      Subword
+      horizontal (Tail, Guards, Subword, Table, OID2)
   end;
 
-clause ({ Rule, X, Y }, Guards, Word, Table, Level)
+horizontal ([ Rule | Tail ], Guards, Word, Table, OID1)
   when is_record (Rule, rule) ->
   % single complex rule
-  { Match, X, Y } = Rule#rule.instance,
-  Name = Rule#rule.name,
-  Variant = #variant { match    = Match,
-                       word_in  = Word,
-                       word_out = "?",
-                       value    = "?",
-                       guards   = Guards,
-                       level    = Level,
-                       pos_x    = X,
-                       pos_y    = Y,
-                       phony    = true },
-  ets:insert (Table, Variant),
-  rule (Word, Guards, Name, Table, Level + 1).
-  
-get_subguards ({ #regexp { instance = { Match, X, Y } }, X, Y }) ->
-  model:get_guards (Match, Y);
-
-get_subguards ({ #rule { instance = { Match, X, Y } }, X, Y }) ->
-  model:get_guards (Match, Y).
+  { _, X, Y } = Rule#rule.instance,
+  Match = Rule#rule.name,
+  OID2  = [ X | OID1 ],
+  case model:get_subrules (Match) of
+    [] ->
+      [ Voc ] = model:ensure (vocabular),
+      case Voc of
+        Match ->
+          % vocabular entry
+          Stems  = model:get_stems (),
+          Search =
+            fun (Stem, Acc1) ->
+              case string:str (Word, Stem) of
+                1 ->
+                  Subword      = lists:nthtail (length (Stem), Word),
+                  Vocabularies = model:get_vocabularies (Stem),                  
+                  Subsearch    =
+                    fun (Vocabulary, Acc2) ->
+                      Subguards = model:get_characteristics (Vocabulary, Stem),
+                      case is_conflict (Guards, Subguards) of
+                        true  -> Acc2;
+                        false ->
+                          OID3 = [ Acc2, Acc1 | OID2 ],
+                          NextGuards = Guards ++ Subguards,
+                          Args = [ Word, Subword, X, Y, Match, Stem, length (NextGuards) ],
+                          detail (OID2, " : vocabular '~s' -> '~s' (~p,~p): ~s = ~s | ~p", Args),
+                          Variant = #variant { oid      = OID3,
+                                               match    = Match,
+                                               word_in  = Word,
+                                               word_out = Subword,
+                                               value    = Stem,
+                                               guards   = NextGuards },
+                          ets:insert (Table, Variant),
+                          horizontal (Tail, NextGuards, Subword, Table, OID3),
+                          Acc2 + 1
+                      end
+                    end,
+                  lists:foldl (Subsearch, 200, Vocabularies),
+                  Acc1 + 1;
+                _ -> Acc1
+              end
+            end,
+          lists:foldl (Search, 100, Stems);
+        _ ->
+          % bad grammar reference
+          debug:warning (?MODULE, "the rule '~s' have not subrules", [ Match ]),
+          throw (error)
+      end;
+    Subrules ->
+      % match subrules
+      detail (OID2, " : rule: '~s', word: '~s' | ~p", [ Match, Word, length (Guards) ]),
+      Vertical =
+        fun (Horizontal, Ordinal) ->
+          Subguards  = model:get_guards (Match, Ordinal),
+          NewOrdinal = Ordinal + 1,
+          case is_conflict (Guards, Subguards) of
+            true  -> NewOrdinal;
+            false ->
+              NextOID    = [ Ordinal | OID2 ],
+              NextGuards = Guards ++ Subguards,
+              horizontal (Horizontal ++ Tail, NextGuards, Word, Table, NextOID),
+              NewOrdinal
+          end
+        end,
+      lists:foldl (Vertical, 1, Subrules)
+  end.
 
 is_conflict (Guards1, Guards2) ->
   Fun2 =
@@ -129,8 +143,8 @@ is_conflict (Guards1, Guards2) ->
       Fun1 =
         fun
           (Guard1) when Guard1 =/= Guard2 ->
-            Entity1 = model:get_entity (Guard1),
-            Entity2 = model:get_entity (Guard2),
+            Entity1 = model:get_entity_name (Guard1),
+            Entity2 = model:get_entity_name (Guard2),
             Entity1 =:= Entity2;
           (_) -> false
         end,
@@ -138,35 +152,49 @@ is_conflict (Guards1, Guards2) ->
     end,
   lists:any (Fun2, Guards2).
 
-detail (Level, Format, Args) ->
-  Message = string:right ("", Level, 32) ++ Format,
-  debug:detail (?MODULE, Message, Args).
+% =============================================================================
+% AUXILIARY FUNCTIONS
+% =============================================================================
 
-dump (Table, Level) ->
-  Mask    = { '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8' },
-  Entries = ets:select (Table, #variant { match    = '$1',
-                                          word_in  = '$2',
-                                          word_out = '$3',
-                                          value    = '$4',
-                                          guards   = '$5',
-                                          level    = Level,
-                                          pos_x    = '$6',
-                                          pos_y    = '$7',
-                                          phony    = '$8' }, [], [ Mask ]),  
+dump (Table) ->
+  debug:detail (?MODULE, "-- dump begin"),
+  Unsorted = ets:match_object (Table, #variant { oid      = '_',
+                                                 match    = '_',
+                                                 word_in  = '_',
+                                                 word_out = '_',
+                                                 value    = '_',
+                                                 guards   = '_' }),
+  Comparator =
+    fun
+      (#variant { oid = OID1 }, #variant { oid = OID2 }) ->
+        string:to_integer (OID1) < string:to_integer (OID2)
+    end,
+  Entries = lists:sort (Comparator, Unsorted),  
   case Entries of
-    [] -> debug:detail (?MODULE, "--");
+    [] -> ok;
     _  ->
-      debug:detail (?MODULE, "-- level ~p", [ Level ]),
       Fun =
         fun
-          ({ M, WI, WO, V, GS, X, Y, false }) ->
-            Format = "~s (~p,~p) = ~s; ~s -> ~s | ~p",
-            Args   = [ M, X, Y, V, WI, WO, GS ],
-            debug:detail (?MODULE, Format, Args);
-          ({ M, WI, _WO, _V, GS, X, Y, true }) ->
-            Format = "~s (~p,~p) ~s | ~p",
-            Args   = [ M, X, Y, WI, GS ],
+          (#variant { oid      = OID,
+                      match    = M,
+                      word_in  = WI,
+                      word_out = WO,
+                      value    = V,
+                      guards   = GS }) ->
+            Format = "~s : ~s = ~s; ~s -> ~s | ~p",
+            Args   = [ format_oid (OID), M, V, WI, WO, GS ],
             debug:detail (?MODULE, Format, Args)
         end,
       lists:foreach (Fun, Entries)
-  end.
+  end,
+  debug:detail (?MODULE, "-- dump end").
+
+detail (OID, Format, Args) ->
+  debug:detail (?MODULE, format_oid (OID) ++ Format, Args).
+
+format_oid (OID) ->
+  do_format_oid (OID, "").
+
+do_format_oid ([], Acc) -> Acc;
+do_format_oid ([ Ordinal | OID ], Acc) ->
+  do_format_oid (OID, integer_to_list (Ordinal) ++ "." ++ Acc).

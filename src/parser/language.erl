@@ -41,6 +41,7 @@ parse () ->
   lexer:load_token (".alphabet",   ?TT_SECTION),
   lexer:load_token (".vocabulary", ?TT_SECTION),
   lexer:load_token (".target",     ?TT_SECTION),
+  lexer:load_token (".vocabular",  ?TT_SECTION),
   lexer:load_token (".include",    ?TT_SECTION),
   lexer:load_token ("{",  ?TT_CONTENT_BEGIN),
   lexer:load_token ("}",  ?TT_CONTENT_END),
@@ -136,6 +137,13 @@ main (?TT_SECTION, ".target") ->
   model:ensure (target, Name),
   main;
 
+main (?TT_SECTION, ".vocabular") ->
+  % '.vocabular' name
+  Name = lexer:next_token (?TT_DEFAULT),
+  lexer:load_token (Name, ?TT_MATCH),
+  model:ensure (vocabular, Name),
+  main;
+
 main (?TT_SECTION, ".include") ->
   % '.include' file
   Name = lexer:next_token (?TT_STRING),
@@ -195,9 +203,13 @@ alphabet (Type, Token) -> default (Type, Token, alphabet).
 %
 
 match_rule (?TT_BREAK, "\n") ->
-  OrdinalY = erlang:get (rule_y),
-  erlang:put (rule_x, 1),
-  erlang:put (rule_y, OrdinalY + 1),
+  case erlang:get (rule_x) of
+    1 -> ok;
+    _ ->
+      OrdinalY = erlang:get (rule_y),
+      erlang:put (rule_x, 1),
+      erlang:put (rule_y, OrdinalY + 1)
+  end,
   match_rule;
 
 match_rule (?TT_MATCH, Rule) ->
