@@ -11,7 +11,7 @@
 -export ([
           % management
           start_link/3,
-          register/2,
+          register/3,
           unregister/0,
           get_status/0,
           % payload
@@ -19,7 +19,8 @@
           load_token/2,
           next_token/0,
           next_token/1,
-          next_token_type/0
+          next_token_type/0,
+          save/1
          ]).
 
 % GEN LEXER CALLBACKS
@@ -58,10 +59,10 @@
 start_link (Src, Dst, Lang) ->
   gen_server:start_link ({ local, ?MODULE }, ?MODULE, { Src, Dst, Lang }, []).
 
-register (Loc, File)
+register (Loc, FileIn, FileOut)
   when Loc == src; Loc == dst; Loc == lang ->
   Pid = erlang:self (),
-  gen_server:cast (?MODULE, { register, Pid, Loc, File }).
+  gen_server:cast (?MODULE, { register, Pid, Loc, FileIn, FileOut }).
 
 unregister () ->
   Pid = erlang:self (),
@@ -70,6 +71,10 @@ unregister () ->
 get_status () ->
   Pid = erlang:self (),
   gen_server:call (?MODULE, { get_status, Pid }).
+
+save (Text) ->
+  Pid = erlang:self (),
+  gen_server:cast (?MODULE, { save, Pid, Text }).
 
 %
 % payload
@@ -140,7 +145,7 @@ handle_call ({ token, next, Pid }, _, State) ->
   Result =
     case dict:is_key (Pid, Dict) of
       true ->
-        Server = dict:fetch (Pid, Dict),
+        { Server, _FileOut } = dict:fetch (Pid, Dict),
         gen_lexer:next_token (Server);
       false ->
         debug:error (?MODULE, "unauthorized access of ~p", [ Pid ]),
@@ -153,7 +158,7 @@ handle_call ({ get_status, Pid }, _, State) ->
   Result =
     case dict:is_key (Pid, Dict) of
       true ->
-        Server = dict:fetch (Pid, Dict),
+        { Server, _FileOut } = dict:fetch (Pid, Dict),
         gen_lexer:get_status (Server, report);
       false ->
         debug:error (?MODULE, "unauthorized access of ~p", [ Pid ]),
@@ -161,25 +166,25 @@ handle_call ({ get_status, Pid }, _, State) ->
     end,
   { reply, Result, State }.
 
-handle_cast ({ register, Pid, Loc, File }, State) ->
+handle_cast ({ register, Pid, Loc, FileIn, FileOut }, State) ->
   Dict1 = State#s.dict,
   case dict:is_key (Pid, Dict1) of
     false ->
       Ref            = erlang:make_ref (),
       Name           = erlang:list_to_atom (erlang:ref_to_list (Ref)),
       { ok, Server } = gen_lexer:start_link (Name, ?MODULE),
-      Dict2          = dict:store (Pid, Server, Dict1),
-      debug:detail (?MODULE, "registered ~p as ~p for ~p", [ Pid, Server, File ]),
+      Dict2          = dict:store (Pid, { Server, FileOut }, Dict1),
+      debug:detail (?MODULE, "registered ~p as ~p for ~p", [ Pid, Server, FileIn ]),
       Dir =
         case Loc of
           src  -> State#s.src;
           dst  -> State#s.dst;
           lang -> State#s.lang
         end,
-      gen_lexer:include_file (Server, Dir, File),
+      gen_lexer:include_file (Server, Dir, FileIn),
       { noreply, State#s { dict = Dict2 } };
     true ->
-      debug:error (?MODULE, "try to reauthorization of ~p for ~p", [ Pid, File ]),
+      debug:error (?MODULE, "try to reauthorization of ~p for ~p", [ Pid, FileIn ]),
       { noreply, State }
   end;
 
@@ -187,10 +192,10 @@ handle_cast ({ unregister, Pid }, State) ->
   Dict1 = State#s.dict,
   case dict:is_key (Pid, Dict1) of
     true ->
-      Server = dict:fetch (Pid, Dict1),
-      Dict2  = dict:erase (Pid, Dict1),
+      { Server, FileOut } = dict:fetch (Pid, Dict1),
+      Dict2 = dict:erase (Pid, Dict1),
       gen_lexer:stop (Server),
-      debug:detail (?MODULE, "unregistered ~p that ~p", [ Pid, Server ]),
+      debug:detail (?MODULE, "unregistered ~p that ~p for ~p", [ Pid, Server, FileOut ]),
       { noreply, State#s { dict = Dict2 } };
     false ->
       debug:warning (?MODULE, "unauthorizated unregistration of ~p", [ Pid ]),
@@ -201,7 +206,7 @@ handle_cast ({ token, load, Pid, Token, Type }, State) ->
   Dict = State#s.dict,
   case dict:is_key (Pid, Dict) of
     true ->
-      Server = dict:fetch (Pid, Dict),
+      { Server, _FileOut } = dict:fetch (Pid, Dict),
       gen_lexer:load_token (Server, Token, Type);
     false ->
       debug:error (?MODULE, "unauthorized access of ~p", [ Pid ])
@@ -212,7 +217,7 @@ handle_cast ({ include, Pid, Loc, Name }, State) ->
   Dict = State#s.dict,
   case dict:is_key (Pid, Dict) of
     true ->
-      Server = dict:fetch (Pid, Dict),
+      { Server, _FileOut } = dict:fetch (Pid, Dict),
       Dir =
         case Loc of
           src  -> State#s.src;
@@ -220,6 +225,24 @@ handle_cast ({ include, Pid, Loc, Name }, State) ->
           lang -> State#s.lang
         end,
       gen_lexer:include_file (Server, Dir, Name);
+    false ->
+      debug:error (?MODULE, "unauthorized access of ~p", [ Pid ])
+  end,
+  { noreply, State };
+
+handle_cast ({ save, Pid, Text }, State) ->
+  Dict = State#s.dict,
+  case dict:is_key (Pid, Dict) of
+    true ->
+      { _Server, FileOut } = dict:fetch (Pid, Dict),
+      Dir  = State#s.dst,
+      Name = filename:join (Dir, FileOut),
+      case file:write_file (Name, Text, [ write ]) of
+        ok -> ok;
+        { error, Reason } ->
+          Args = [ FileOut, Pid, Reason ],
+          debug:error (?MODULE, "can not write to file ~p from ~p (reason: ~p)", Args)
+      end;
     false ->
       debug:error (?MODULE, "unauthorized access of ~p", [ Pid ])
   end,

@@ -1,4 +1,5 @@
 /ebin/
+/priv/*.out.txt
 /*.log
 /*.dump
 /*.cookie

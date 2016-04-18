@@ -29,6 +29,7 @@
           get_stems/0,
           get_vocabularies/1,
           get_characteristics/2,
+          get_property/1,
           ensure/1,
           ensure/2,
           ensure/3
@@ -177,6 +178,15 @@ get_vocabularies (Stem) ->
 get_characteristics (Vocabulary, Stem) ->
   Mask = #characteristic { instance = { Stem, '$1' }, vocabulary = Vocabulary },
   gen_server:call (?MODULE, { voc, select, Mask, '$1' }).
+
+get_property (Name) ->
+  Mask = #property { name = Name, value = '_', entity = '_' },
+  case gen_server:call (?MODULE, { model, select, Mask, '$_' }) of
+    [] -> 
+      debug:error (?MODULE, "undefined property '~s'", [ Name ]),
+      dispatcher:fatal_error ();
+    [ Property ] -> Property
+  end.
 
 %
 % parametres

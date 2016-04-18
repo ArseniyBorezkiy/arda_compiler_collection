@@ -34,6 +34,7 @@
 -define (TT_PROPERTY,      property).
 -define (TT_CLASS,         class).
 -define (TT_MATCH,         match).
+-define (TT_DIRECTION,     direction).
 
 -define (TT_ASSIGNMENT,    assignment).
 -define (TT_GUARG,         guard).

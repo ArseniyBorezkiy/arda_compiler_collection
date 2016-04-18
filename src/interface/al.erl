@@ -8,21 +8,21 @@
 % API
 -export ([
           % external interface
-          start/2,
+          start/3,
           % internal callback
-          run/1
+          run/2
          ]).
 
 % =============================================================================
 % API
 % =============================================================================
 
-start (Node, Target) ->
-  case rpc:call (Node, ?MODULE, run, [ Target ]) of
+start (Node, TargetIn, TargetOut) ->
+  case rpc:call (Node, ?MODULE, run, [ TargetIn, TargetOut ]) of
     ok -> 0;
     error -> -1;
     { badrpc, _ } -> -1
   end.
 
-run (Target) ->
-  dispatcher:compile (Target).
+run (TargetIn, TargetOut) ->
+  dispatcher:compile (TargetIn, TargetOut).

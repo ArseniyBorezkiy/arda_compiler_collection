@@ -11,9 +11,9 @@
           start_link/1,
           fatal_error/0,
           % payload
-          compile/1,
+          compile/2,
           % internal callbacks
-          process/1
+          process/2
         ]).
 
 % GEN SERVER CALLBACKS
@@ -47,8 +47,8 @@ fatal_error () ->
 % payload
 %
 
-compile (File) ->
-  gen_server:call (?MODULE, { compile, File }).
+compile (FileIn, FileOut) ->
+  gen_server:call (?MODULE, { compile, FileIn, FileOut }).
 
 % =============================================================================
 % GEN SERVER CALLBACKS
@@ -73,10 +73,10 @@ code_change (_, State, _) ->
 % dispatchers
 %
 
-handle_call ({ compile, File }, From, State) ->
+handle_call ({ compile, FileIn, FileOut }, From, State) ->
   % start and register new process
-  { Pid, Ref } = erlang:spawn_monitor (?MODULE, process, [ File ]),
-  Dict = dict:store ({ Pid, Ref }, { From, File }, State#s.dict),
+  { Pid, Ref } = erlang:spawn_monitor (?MODULE, process, [ FileIn, FileOut ]),
+  Dict = dict:store ({ Pid, Ref }, { From, FileIn }, State#s.dict),
   { noreply, State#s { dict = Dict } }.
 
 handle_cast ({ error, fatal }, State) ->
@@ -106,23 +106,23 @@ handle_info ({ 'DOWN', Ref, process, Pid, Reason }, State) ->
 % INTERNAL FUNCTIONS
 % =============================================================================
 
-process (File) ->  
-  lexer:register (src, File),
-  debug:section (?MODULE, "compiling ~p", [ File ]),
+process (FileIn, FileOut) ->  
+  lexer:register (src, FileIn, FileOut),
+  debug:section (?MODULE, "compiling ~p", [ FileIn ]),
   Reason =
     try sentence:compile () of
       Result ->
-        debug:success (?MODULE, "compilation finished for ~p", [ File ]),
+        debug:success (?MODULE, "compilation finished for ~p", [ FileIn ]),
         Result
     catch
       throw:_ ->
         Status = lexer:get_status (),
-        debug:warning (?MODULE, "compilation failed for ~p~n~s", [ File, Status ]),
+        debug:warning (?MODULE, "compilation failed for ~p~n~s", [ FileIn, Status ]),
         error;
       _:Error ->
         Status = lexer:get_status (),
         Stack  = erlang:get_stacktrace (),
-        debug:warning (?MODULE, "compilation failed for ~p~n~s", [ File, Status ]),
+        debug:warning (?MODULE, "compilation failed for ~p~n~s", [ FileIn, Status ]),
         { error, { Error, Stack } }
     after
       lexer:unregister ()
@@ -130,7 +130,7 @@ process (File) ->
   exit (Reason).
 
 load_grammar (File) ->
-  lexer:register (lang, File),
+  lexer:register (lang, File, File),
   debug:section (?MODULE, "loading grammar reference: ~p", [ File ]),
   try language:parse () of
     _ ->

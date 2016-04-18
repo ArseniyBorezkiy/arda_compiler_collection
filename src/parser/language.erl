@@ -43,6 +43,8 @@ parse () ->
   lexer:load_token (".target",     ?TT_SECTION),
   lexer:load_token (".vocabular",  ?TT_SECTION),
   lexer:load_token (".include",    ?TT_SECTION),
+  lexer:load_token (".forward",    ?TT_DIRECTION),
+  lexer:load_token (".backward",   ?TT_DIRECTION),
   lexer:load_token ("{",  ?TT_CONTENT_BEGIN),
   lexer:load_token ("}",  ?TT_CONTENT_END),
   lexer:load_token ("=",  ?TT_ASSIGNMENT),
@@ -91,7 +93,9 @@ main (?TT_SECTION, ".class") ->
   class;
 
 main (?TT_SECTION, ".match") ->
-  % '.class' name '{'
+  % '.match' [ '.forward' | '.backward' ] name '{'
+  Direction = lexer:next_token (?TT_DIRECTION),
+  erlang:put (rule_direction, Direction),
   Name = lexer:next_token (?TT_DEFAULT),
   model:create_entity (Name, ?ET_MATCH),
   lexer:load_token (Name, ?TT_MATCH),
@@ -223,7 +227,11 @@ match_rule (?TT_MATCH, Rule) ->
 
 match_rule (?TT_DEFAULT, Expression) ->
   % regular expression
-  Filters  = rule:parse (Expression),
+  Filters  =
+    case erlang:get (rule_direction) of
+      ".forward"  -> rule:parse_forward (Expression);
+      ".backward" -> rule:parse_backward (Expression)
+    end,
   Match    = erlang:get (base),
   OrdinalX = erlang:get (rule_x),
   OrdinalY = erlang:get (rule_y),

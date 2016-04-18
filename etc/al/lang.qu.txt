@@ -27,21 +27,25 @@
 	part_of_speech
 }
 
-.match noun {
-	+*
+.match .forward subnoun {
+  +*
 }
 
-.match verb {
+.match .forward noun {
+	subnoun
+}
+
+.match .forward verb {
 	+#
 }
 
-.match never {
+.match .forward never {
 	- | verb.
 }
 
 .vocabular stem
 
-.match main {
+.match .forward main {
 	noun  stem | noun.
 	verb  stem | verb.
 	never stem | noun.

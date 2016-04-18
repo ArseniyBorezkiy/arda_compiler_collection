@@ -6,12 +6,14 @@
 
 % API
 -export ([
-          parse/1
+          parse/1,
+          format_oid/1
         ]).
 
 % HEADERS
 -include ("general.hrl").
 -include ("model.hrl").
+-include ("output.hrl").
 
 % DEFINITIONS
 -record (variant, { oid      :: list (unsigned_t ()), 
@@ -31,8 +33,9 @@ parse (Word) ->
     [ Match ] = model:ensure (target),
     Rule = #rule { instance = { Match, 1, 1 }, name = Match },
     horizontal ([ Rule ], [], Word, Table, []),
-    dump (Table),
-    []
+    dump_detail (Word, Table),
+    Words = dump_words (Word, Table),
+    Words
   after
     ets:delete (Table)
   end.
@@ -41,7 +44,39 @@ parse (Word) ->
 % INTERNAL FUNCTIONS
 % =============================================================================
 
-horizontal ([], _Guards, _Word, _Table, _OID) -> ok;
+horizontal ([], Guards, Word, Table, OID1) ->
+  % estimated stem
+  Stems  = model:get_stems (),
+  Search =
+    fun (Stem, Acc1) ->
+      case Stem == Word of
+        true ->
+          Vocabularies = model:get_vocabularies (Stem),                  
+          Subsearch    =
+            fun (Vocabulary, Acc2) ->
+              Subguards = model:get_characteristics (Vocabulary, Stem),
+              case is_conflict (Guards, Subguards) of
+                true  -> Acc2;
+                false ->
+                  OID2 = [ Acc2, Acc1 | OID1 ],
+                  FinalGuards = sets:to_list (sets:from_list (Guards ++ Subguards)),
+                  Args = [ Word, length (FinalGuards) ],
+                  detail (OID2, " : vocabular '~s' | ~p", Args),
+                  Entry = #word { oid    = OID2,
+                                  guards = FinalGuards,
+                                  route  = get_route (OID1, Table),
+                                  stem   = Stem },
+                  ets:insert (Table, Entry),
+                  Acc2 + 1
+              end
+            end,
+          lists:foldl (Subsearch, 1000, Vocabularies),
+          Acc1 + 1;
+        false -> Acc1
+      end
+    end,
+  lists:foldl (Search, 1000, Stems),
+  ok;
   
 horizontal ([ Expression | Tail ], Guards, Word, Table, OID1)
   when is_record (Expression, regexp) ->
@@ -70,49 +105,14 @@ horizontal ([ Expression | Tail ], Guards, Word, Table, OID1)
 horizontal ([ Rule | Tail ], Guards, Word, Table, OID1)
   when is_record (Rule, rule) ->
   % single complex rule
-  { _, X, Y } = Rule#rule.instance,
+  { _, X, _ } = Rule#rule.instance,
   Match = Rule#rule.name,
   OID2  = [ X | OID1 ],
   case model:get_subrules (Match) of
     [] ->
       [ Voc ] = model:ensure (vocabular),
       case Voc of
-        Match ->
-          % vocabular entry
-          Stems  = model:get_stems (),
-          Search =
-            fun (Stem, Acc1) ->
-              case string:str (Word, Stem) of
-                1 ->
-                  Subword      = lists:nthtail (length (Stem), Word),
-                  Vocabularies = model:get_vocabularies (Stem),                  
-                  Subsearch    =
-                    fun (Vocabulary, Acc2) ->
-                      Subguards = model:get_characteristics (Vocabulary, Stem),
-                      case is_conflict (Guards, Subguards) of
-                        true  -> Acc2;
-                        false ->
-                          OID3 = [ Acc2, Acc1 | OID2 ],
-                          NextGuards = Guards ++ Subguards,
-                          Args = [ Word, Subword, X, Y, Match, Stem, length (NextGuards) ],
-                          detail (OID2, " : vocabular '~s' -> '~s' (~p,~p): ~s = ~s | ~p", Args),
-                          Variant = #variant { oid      = OID3,
-                                               match    = Match,
-                                               word_in  = Word,
-                                               word_out = Subword,
-                                               value    = Stem,
-                                               guards   = NextGuards },
-                          ets:insert (Table, Variant),
-                          horizontal (Tail, NextGuards, Subword, Table, OID3),
-                          Acc2 + 1
-                      end
-                    end,
-                  lists:foldl (Subsearch, 200, Vocabularies),
-                  Acc1 + 1;
-                _ -> Acc1
-              end
-            end,
-          lists:foldl (Search, 100, Stems);
+        Match -> horizontal (Tail, Guards, Word, Table, OID2);
         _ ->
           % bad grammar reference
           debug:warning (?MODULE, "the rule '~s' have not subrules", [ Match ]),
@@ -156,8 +156,8 @@ is_conflict (Guards1, Guards2) ->
 % AUXILIARY FUNCTIONS
 % =============================================================================
 
-dump (Table) ->
-  debug:detail (?MODULE, "-- dump begin"),
+dump_detail (Word, Table) ->
+  debug:detail (?MODULE, "-- ~s: dump begin", [ Word ]),
   Unsorted = ets:match_object (Table, #variant { oid      = '_',
                                                  match    = '_',
                                                  word_in  = '_',
@@ -165,8 +165,7 @@ dump (Table) ->
                                                  value    = '_',
                                                  guards   = '_' }),
   Comparator =
-    fun
-      (#variant { oid = OID1 }, #variant { oid = OID2 }) ->
+    fun (#variant { oid = OID1 }, #variant { oid = OID2 }) ->
         string:to_integer (OID1) < string:to_integer (OID2)
     end,
   Entries = lists:sort (Comparator, Unsorted),  
@@ -174,20 +173,49 @@ dump (Table) ->
     [] -> ok;
     _  ->
       Fun =
-        fun
-          (#variant { oid      = OID,
-                      match    = M,
-                      word_in  = WI,
-                      word_out = WO,
-                      value    = V,
-                      guards   = GS }) ->
+        fun (#variant { oid      = OID,
+                        match    = M,
+                        word_in  = WI,
+                        word_out = WO,
+                        value    = V,
+                        guards   = GS }) ->
             Format = "~s : ~s = ~s; ~s -> ~s | ~p",
             Args   = [ format_oid (OID), M, V, WI, WO, GS ],
             debug:detail (?MODULE, Format, Args)
         end,
       lists:foreach (Fun, Entries)
   end,
-  debug:detail (?MODULE, "-- dump end").
+  debug:detail (?MODULE, "-- ~s: dump end", [ Word ]).
+
+dump_words (Word, Table) ->
+  debug:detail (?MODULE, "-- ~s: word list begin", [ Word ]),
+  Unsorted = ets:match_object (Table, #word { oid    = '_',
+                                              guards = '_',
+                                              route  = '_',
+                                              stem   = '_' }),
+  Comparator =
+    fun (#word { oid = OID1 }, #word { oid = OID2 }) ->
+        string:to_integer (OID1) < string:to_integer (OID2)
+    end,
+  Entries = lists:sort (Comparator, Unsorted),  
+  case Entries of
+    [] -> ok;
+    _  ->
+      Fun =
+        fun (#word { oid = OID, guards = Guards, route = Route, stem = Stem }) ->
+            Format = "~s : ~s | ~p",
+            Args   = [ format_oid (OID), Stem, Guards ],
+            debug:detail (?MODULE, Format, Args),
+            PrintRoute =
+              fun ({ Match, Value }) ->
+                debug:detail (?MODULE, "  ~s = ~s", [ Match, Value ])
+              end,
+            lists:foreach (PrintRoute, Route)
+        end,
+      lists:foreach (Fun, Entries)
+  end,
+  debug:detail (?MODULE, "-- ~s: word list end", [ Word ]),
+  Entries.
 
 detail (OID, Format, Args) ->
   debug:detail (?MODULE, format_oid (OID) ++ Format, Args).
@@ -198,3 +226,21 @@ format_oid (OID) ->
 do_format_oid ([], Acc) -> Acc;
 do_format_oid ([ Ordinal | OID ], Acc) ->
   do_format_oid (OID, integer_to_list (Ordinal) ++ "." ++ Acc).
+
+get_route (OID, Table) ->
+  do_get_route (OID, Table, []).
+
+do_get_route ([], _Table, Acc) -> Acc;
+do_get_route ([ _ | Tail ] = OID, Table, Acc) ->
+  Mask = #variant { oid      = OID,
+                    match    = '_',
+                    word_in  = '_',
+                    word_out = '_',
+                    value    = '_',
+                    guards   = '_' },
+  NewAcc =
+    case ets:select (Table, [ { Mask, [], ['$_'] } ]) of
+      [] -> Acc;
+      [ #variant { match = Match, value = Value } ] -> [ { Match, Value } | Acc ]
+    end,
+  do_get_route (Tail, Table, NewAcc).
