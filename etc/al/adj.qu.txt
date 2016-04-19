@@ -1,36 +1,57 @@
 /* adj.qu */
 
-/* attributes */
+.language quenya 1 1
+
+/* ==========================
+ * ADJECTIVE CLASS DEFINITION
+ * ========================== */
+ 
+/*
+ * attributes
+ */
+ 
 .attribute aa_number {
-  sg.  = "singular number"
-  pl.  = "plural number"
-  du.  = "dual number"
+  A.sg.  = "singular number"
+  A.pl.  = "plural number"
+  A.du.  = "dual number"
 }
 
 .attribute aa_declension {
-  E  = "E-vovel declension"
-  IE = "IE-vovel declension"
-  R  = "R-vovel declension"
+  AA  = "A-vovel declension"
+  AE  = "E-vovel declension"
+  AEA = "EA-vovel declension"
 }
 
-/* implementation */
-.class noun n. {
+/*
+ * class implementation
+ */
+ 
+.class adjective {
   aa_number
   aa_declension
 }
 
-/* rules */
-.match a_steam {
-  .vocabulary adj.
+/*
+ * normalizators
+ */
+ 
+.mutation !A a_normalize {
+  e  = a
+  i  = e
+  ie = ea
 }
 
-.match a_number {
-  -r  | pl. R
-  -*  | pl. E
-  -ie | pl. IE
+/*
+ * rules
+ */
+
+.match .backward a_number {
+  -!A=e  | A.pl. AA
+  -!A=i  | A.pl. AE
+  -!A=ie | A.pl. AEA
 }
 
-.match adjective adj. {
-  a_steam | sg.
-  a_steam a_number
+.match .forward a_adjective {
+  stem          | A.sg.
+  stem a_number
 }

@@ -12,6 +12,7 @@
           attribute/2,
           class/2,
           alphabet/2,
+          mutation/2,
           match_rule/2,
           match_guard/2,
           comment/2,
@@ -43,12 +44,14 @@ parse () ->
   lexer:load_token (".target",     ?TT_SECTION),
   lexer:load_token (".vocabular",  ?TT_SECTION),
   lexer:load_token (".include",    ?TT_SECTION),
+  lexer:load_token (".mutation",   ?TT_SECTION),
+  lexer:load_token (".base",       ?TT_SECTION),
   lexer:load_token (".forward",    ?TT_DIRECTION),
   lexer:load_token (".backward",   ?TT_DIRECTION),
   lexer:load_token ("{",  ?TT_CONTENT_BEGIN),
   lexer:load_token ("}",  ?TT_CONTENT_END),
   lexer:load_token ("=",  ?TT_ASSIGNMENT),
-  lexer:load_token ("|",  ?TT_GUARG),
+  lexer:load_token ("|",  ?TT_GUARD),
   lexer:load_token ("/*", ?TT_COMMENT_BEGIN),
   lexer:load_token ("*/", ?TT_COMMENT_END),
   % setting up process dictionary
@@ -93,31 +96,73 @@ main (?TT_SECTION, ".class") ->
   class;
 
 main (?TT_SECTION, ".match") ->
-  % '.match' [ '.forward' | '.backward' ] name '{'
-  Direction = lexer:next_token (?TT_DIRECTION),
+  % '.match' ( '.forward' | '.backward' ) name [ '.vocabular' dictionary ] '{'
+  Direction =
+    case lexer:next_token (?TT_DIRECTION) of
+      ".forward"  -> forward;
+      ".backward" -> backward
+    end,
   erlang:put (rule_direction, Direction),
   Name = lexer:next_token (?TT_DEFAULT),
-  model:create_entity (Name, ?ET_MATCH),
   lexer:load_token (Name, ?TT_MATCH),
-  lexer:next_token (?TT_CONTENT_BEGIN),
+  case lexer:next_token () of
+    { ?TT_SECTION, ".vocabular" } ->
+      Dictionary = lexer:next_token (?TT_VOCABULARY),
+      Tag = [ proplists:property (direction, Direction),
+              proplists:property (vocabular, Dictionary) ],
+      model:create_entity (Name, ?ET_MATCH, Tag),
+      lexer:next_token (?TT_CONTENT_BEGIN);
+    { ?TT_CONTENT_BEGIN, _ } ->
+      Tag = [ proplists:property (direction, Direction) ],
+      model:create_entity (Name, ?ET_MATCH, Tag)
+  end,
   erlang:put (base, Name),
   erlang:put (rule_x, 1),
   erlang:put (rule_y, 1),
   match_rule;
 
 main (?TT_SECTION, ".alphabet") ->
-  % '.alphabet' wildcard name '{'
+  % '.alphabet' wildcard name [ '.base' { name } ] '{'
   Wildcard = lexer:next_token (?TT_DEFAULT),
   lexer:load_token (Wildcard, ?TT_WILDCARD),
   Name = lexer:next_token (?TT_DEFAULT),
-  model:create_entity (Name, ?ET_ALPHABET, Wildcard),
-  lexer:next_token (?TT_CONTENT_BEGIN),
+  lexer:load_token (Name, ?TT_ALPHABET),
+  { Parents, State } =
+    case lexer:next_token () of
+      { ?TT_CONTENT_BEGIN, _ } ->
+        { [], alphabet };
+      { ?TT_SECTION, ".base" } ->
+        get_parents (?TT_ALPHABET, alphabet)
+    end,
+  Tag = [ proplists:property (wildcard, Wildcard),
+          proplists:property (base, Parents) ],
+  model:create_entity (Name, ?ET_ALPHABET, Tag),
   erlang:put (base, Name),
-  alphabet;
+  State;
+
+main (?TT_SECTION, ".mutation") ->
+  % '.mutation' wildcard name [ '.base' { name } ] '{'
+  Wildcard = lexer:next_token (?TT_DEFAULT),
+  lexer:load_token (Wildcard, ?TT_WILDCARD),
+  Name = lexer:next_token (?TT_DEFAULT),
+  lexer:load_token (Name, ?TT_MUTATION),
+  { Parents, State } =
+    case lexer:next_token () of
+      { ?TT_CONTENT_BEGIN, _ } ->
+        { [], mutation };
+      { ?TT_SECTION, ".base" } ->
+        get_parents (?TT_MUTATION, mutation)
+    end,
+  Tag = [ proplists:property (wildcard, Wildcard),
+          proplists:property (base, Parents) ],
+  model:create_entity (Name, ?ET_MUTATION, Tag),
+  erlang:put (base, Name),
+  State;
 
 main (?TT_SECTION, ".vocabulary") ->
   % '.vocabulary' name '{'
   Name = lexer:next_token (?TT_DEFAULT),
+  lexer:load_token (Name, ?TT_VOCABULARY),
   model:create_entity (Name, ?ET_VOCABULARY),
   lexer:next_token (?TT_CONTENT_BEGIN),
   erlang:put (base, Name),
@@ -145,6 +190,8 @@ main (?TT_SECTION, ".vocabular") ->
   % '.vocabular' name
   Name = lexer:next_token (?TT_DEFAULT),
   lexer:load_token (Name, ?TT_MATCH),
+  Tag = [ proplists:property (direction, forward) ],
+  model:create_entity (Name, ?ET_MATCH, Tag),
   model:ensure (vocabular, Name),
   main;
 
@@ -203,6 +250,33 @@ alphabet (?TT_DEFAULT, Phoneme) ->
 alphabet (Type, Token) -> default (Type, Token, alphabet).
 
 %
+% mutation
+%
+
+mutation (?TT_PHONEME, PhonemeSrc) ->
+  % phoneme '=' phoneme
+  lexer:next_token (?TT_ASSIGNMENT),
+  PhonemeDst = lexer:next_token (?TT_PHONEME),
+  Entity = erlang:get (base),
+  model:create_property (Entity, ?UP_MUTATION (PhonemeSrc), PhonemeDst),
+  mutation;
+
+mutation (?TT_WILDCARD, WildcardSrc) ->
+  % wildcard '=' phoneme
+  PhonemesSrc = model:get_phonemes (WildcardSrc),
+  lexer:next_token (?TT_ASSIGNMENT),
+  PhonemeDst = lexer:next_token (?TT_PHONEME),
+  Entity = erlang:get (base),
+  Fun =
+    fun (PhonemeSrc) ->
+      model:create_property (Entity, ?UP_MUTATION (PhonemeSrc), PhonemeDst)
+    end,
+  lists:foreach (Fun, PhonemesSrc),
+  mutation;
+
+mutation (Type, Token) -> default (Type, Token, mutation).
+
+%
 % match
 %
 
@@ -218,28 +292,31 @@ match_rule (?TT_BREAK, "\n") ->
 
 match_rule (?TT_MATCH, Rule) ->
   % separated rule
-  Match    = erlang:get (base),
-  OrdinalX = erlang:get (rule_x),
-  OrdinalY = erlang:get (rule_y),
-  model:create_rule (Match, OrdinalX, OrdinalY, Rule),
+  Match     = erlang:get (base),
+  OrdinalX  = erlang:get (rule_x),
+  OrdinalY  = erlang:get (rule_y),
+  Entity    = model:get_entity (Rule),
+  Direction = proplists:get_value (direction, Entity#entity.tag),
+  model:create_rule (Match, OrdinalX, OrdinalY, Rule, Direction),
   erlang:put (rule_x, OrdinalX + 1),
   match_rule;
 
 match_rule (?TT_DEFAULT, Expression) ->
   % regular expression
-  Filters  =
-    case erlang:get (rule_direction) of
-      ".forward"  -> rule:parse_forward (Expression);
-      ".backward" -> rule:parse_backward (Expression)
+  Direction = erlang:get (rule_direction),
+  Filters =
+    case Direction of
+      forward  -> rule:parse_forward (Expression);
+      backward -> rule:parse_backward (Expression)
     end,
   Match    = erlang:get (base),
   OrdinalX = erlang:get (rule_x),
   OrdinalY = erlang:get (rule_y),
-  model:create_regexp (Match, OrdinalX, OrdinalY, Expression, Filters),
+  model:create_regexp (Match, OrdinalX, OrdinalY, Expression, Filters, Direction),
   erlang:put (rule_x, OrdinalX + 1),
   match_rule;
 
-match_rule (?TT_GUARG, "|") ->
+match_rule (?TT_GUARD, "|") ->
   % '|'
   erlang:put (rule_x, 1),
   match_guard;
@@ -331,7 +408,8 @@ default (?TT_COMMENT_BEGIN, "/*", State) ->
 default (?TT_CONTENT_END, "}", State)
   when State == attribute; State == class; State == alphabet;
        State == match_rule; State == match_guard;
-       State == vocabular_entry; State == vocabular_specification ->
+       State == vocabular_entry; State == vocabular_specification;
+       State == mutation ->
   % end of the section
   main;
 
@@ -341,6 +419,27 @@ default (Type, Token, State) ->
 % =============================================================================
 % AUXILIARY FUNCTIONS
 % =============================================================================
+
+%
+% parse
+%
+
+get_parents (TokenType, State) ->
+  do_get_parents (TokenType, State, []).
+
+do_get_parents (TokenType, State, Parents) ->
+  case lexer:next_token () of
+    { ?TT_CONTENT_BEGIN, _ } -> { Parents, State };
+    { TokenType, Name } ->
+      do_get_parents (TokenType, State, [ Name | Parents ]);
+    { OtherType, Name } ->
+      fatal ("expected parent '~s' of type '~p' instead of '~p'", [ Name, TokenType, OtherType ]),
+      { Parents, exit }
+  end.
+
+%
+% errors
+%
 
 fatal (Message) ->
   fatal (Message, []).

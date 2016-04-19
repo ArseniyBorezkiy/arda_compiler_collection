@@ -16,19 +16,21 @@
           create_entity/3,
           create_property/2,
           create_property/3,
-          create_rule/4,
-          create_regexp/5,
+          create_rule/5,
+          create_regexp/6,
           create_guard/5,
           create_stem/2,
           create_characteristic/3,
           get_entities/0,
           get_properties/1,
+          get_recursive_properties/2,
           get_entity_name/1,
           get_subrules/1,
           get_guards/2,
           get_stems/0,
           get_vocabularies/1,
           get_characteristics/2,
+          get_entity/1,
           get_property/1,
           ensure/1,
           ensure/2,
@@ -73,7 +75,7 @@ dump (Target) ->
 %
 
 create_entity (Entity, Type) ->
-  create_entity (Entity, Type, "").
+  create_entity (Entity, Type, []).
 
 create_entity (Entity, Type, Tag) ->
   Key = Entity,
@@ -92,14 +94,19 @@ create_property (Entity, Property, Value) ->
                        entity = Entity },
   gen_server:cast (?MODULE, { model, create, Key, Object }).
 
-create_rule (Match, OrdinalX, OrdinalY, Name) ->
+create_rule (Match, OrdinalX, OrdinalY, Name, Direction)
+  when Direction == forward orelse Direction == backward ->
   Key = { Match, OrdinalX, OrdinalY },
-  Object = #rule { instance = Key, name = Name },
+  Object = #rule { instance = Key, name = Name, direction = Direction },
   gen_server:cast (?MODULE, { rule, create, Key, Object }).
 
-create_regexp (Match, OrdinalX, OrdinalY, Expression, Filters) ->
+create_regexp (Match, OrdinalX, OrdinalY, Expression, Filters, Direction)
+  when Direction == forward orelse Direction == backward ->
   Key = { Match, OrdinalX, OrdinalY },
-  Object = #regexp { instance = Key, expression = Expression, filters = Filters },
+  Object = #regexp { instance   = Key,
+                     expression = Expression,
+                     filters    = Filters,
+                     direction  = Direction },
   gen_server:cast (?MODULE, { rule, create, Key, Object }).
 
 create_guard (Match, OrdinalX, OrdinalY, Entity, Property) ->
@@ -129,6 +136,15 @@ get_properties (Entity) ->
   Mask = #property { name = '$1', value = '$2', entity = Entity },
   gen_server:call (?MODULE, { model, select, Mask, '$_' }).
 
+get_recursive_properties ([], _Genealogist) -> [];
+get_recursive_properties ([ Entity | Tail ], Genealogist) ->
+  Properties = get_properties (Entity),
+  case Genealogist (get_entity (Entity)) of
+    false -> Properties;
+    { true, Extra } ->
+      Properties ++ get_recursive_properties (Extra ++ Tail, Genealogist)
+  end.
+  
 get_entity_name (Property) ->
   Mask = #property { name = Property, value = '_', entity = '$1' },
   case gen_server:call (?MODULE, { model, select, Mask, '$1' }) of
@@ -139,29 +155,37 @@ get_entity_name (Property) ->
   end.
 
 get_subrules (Match) ->
-  Mask1     = #rule { instance = { Match, '_', '$1' }, name = '_' },
+  Mask1     = #rule { instance = { Match, '_', '$1' }, name = '_', direction = '_' },
   Ordinals1 = gen_server:call (?MODULE, { rule, select, Mask1, '$1' }),
-  Mask2     = #regexp { instance = { Match, '_', '$1' }, expression = '_', filters = '_' },
+  Mask2     = #regexp { instance = { Match, '_', '$1' }, expression = '_', filters = '_', direction = '_' },
   Ordinals2 = gen_server:call (?MODULE, { rule, select, Mask2, '$1' }),
-  OrdinalsY = sets:to_list(sets:from_list(lists:sort (Ordinals1 ++ Ordinals2))),
+  OrdinalsY = sets:to_list(sets:from_list(lists:sort (Ordinals1 ++ Ordinals2))),  
   Fun =
     fun (OrdinalY) ->
-      SubMask1   = #rule { instance = { Match, '$1', OrdinalY }, name = '_' },
+      SubMask1   = #rule { instance = { Match, '$1', OrdinalY }, name = '_', direction = '_' },
       SubRules1  = gen_server:call (?MODULE, { rule, select, SubMask1, '$_' }),
-      SubMask2   = #regexp { instance = { Match, '$1', OrdinalY }, expression = '_', filters = '_' },
+      SubMask2   = #regexp { instance = { Match, '$1', OrdinalY }, expression = '_', filters = '_', direction = '_' },
       SubRules2  = gen_server:call (?MODULE, { rule, select, SubMask2, '$_' }),
+      Subrules   = SubRules1 ++ SubRules2,
+      GetD       =
+        fun
+          (#rule { direction = Direction }) -> Direction;
+          (#regexp { direction = Direction }) -> Direction
+        end,
       GetX       =
         fun
           (#rule { instance = { _, OrdinalX, _ } }) -> OrdinalX;
           (#regexp { instance = { _, OrdinalX, _ } }) -> OrdinalX
         end,
-      Comparator =
-        fun (E1, E2) ->
-          GetX (E1) < GetX (E2)
-        end,
-      lists:sort (Comparator, SubRules1 ++ SubRules2)
+      Separator  = fun (Direction) -> fun (E) -> Direction == GetD (E) end end,
+      Comparator = fun (Order) -> fun (E1, E2) -> Order (GetX (E1), GetX (E2)) end end,
+      Inc = fun (E1, E2) -> E1 < E2 end,
+      Dec = fun (E1, E2) -> E1 > E2 end,
+      { Forward, Backward } = lists:partition (Separator (forward), Subrules),
+      lists:sort (Comparator (Inc), Forward) ++ lists:sort (Comparator (Dec), Backward)
     end,
-  lists:map (Fun, OrdinalsY).
+  Sort = fun (E1, E2) -> E1 < E2 end,
+  lists:map (Fun, lists:sort (Sort, OrdinalsY)).
 
 get_guards (Match, OrdinalY) ->
   Mask = #guard { instance = { Match, '_', OrdinalY }, entity = '_', property = '$1' },
@@ -178,6 +202,15 @@ get_vocabularies (Stem) ->
 get_characteristics (Vocabulary, Stem) ->
   Mask = #characteristic { instance = { Stem, '$1' }, vocabulary = Vocabulary },
   gen_server:call (?MODULE, { voc, select, Mask, '$1' }).
+
+get_entity (Name) ->
+  Mask = #entity { name = Name, type = '_', tag = '_' },
+  case gen_server:call (?MODULE, { model, select, Mask, '$_' }) of
+    [] -> 
+      debug:error (?MODULE, "undefined entity '~s'", [ Name ]),
+      dispatcher:fatal_error ();
+    [ Entity ] -> Entity
+  end.
 
 get_property (Name) ->
   Mask = #property { name = Name, value = '_', entity = '_' },

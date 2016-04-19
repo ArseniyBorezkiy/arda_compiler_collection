@@ -19,7 +19,7 @@
 
 -record (entity, { name :: string (),
                    type :: atom (),
-                   tag  :: string () }).
+                   tag  :: term () }).
 
 -type entity_t () :: # entity { } .
 
@@ -45,16 +45,20 @@
                                OrdinalX :: unsigned_t (),
                                OrdinalY :: unsigned_t () } .
 
--record (rule,   { instance :: match_instance_t (),
-                   name     :: string () }).
+-type direction_t () :: forward | backward .
+
+-record (rule,   { instance  :: match_instance_t (),
+                   name      :: string (),
+                   direction :: direction_t () }).
 
 -record (regexp, { instance   :: match_instance_t (),
                    expression :: string (),
+                   direction  :: direction_t (),
                    filters    :: list (filter_t ()) }).
 
--record (guard, { instance :: match_instance_t (),
-                  entity   :: string (),
-                  property :: string () }).
+-record (guard, { instance  :: match_instance_t (),
+                  entity    :: string (),
+                  property  :: string () }).
 
 %
 % vocabular storage
@@ -82,5 +86,12 @@
 -define (ET_ALPHABET, alphabet).
 -define (ET_VOCABULARY, vocabulary).
 -define (ET_MATCH, match).
+-define (ET_MUTATION, mutation).
+
+%
+% unique phoneme prefixes
+%
+
+-define (UP_MUTATION (P), [ ' ' | P ]).
 
 -endif. % __MODEL_HRL__

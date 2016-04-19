@@ -1,8 +1,16 @@
-/* common.qu */
+/* ect.qu */
+
 .language quenya 1 1
 
-/* vowels */
-.atom @ short_vowel {
+/* ===========================
+ * TENGWAR ALPHABET DEFINITION
+ * =========================== */
+ 
+/*
+ * vowels
+ */
+ 
+.alphabet @S short_vowel {
   a   = "tehta (a)"
   e   = "tehta (e)"
   i   = "tehta (i)"
@@ -10,7 +18,7 @@
   u   = "tehta (u)"
 }
 
-.atom % diphthong_vowel {
+.alphabet @D diphthong_vowel {
   ai  = "diphthong (ai)"
   oi  = "diphthong (oi)"
   ui  = "diphthong (ui)"
@@ -19,7 +27,12 @@
   iu  = "diphthong (iu)"
 }
 
-.atom ^ long_vowel : diphthong_vowel {
+.alphabet @P non_diphthong_vowel {
+  ea  = "vowels (e, a)"
+  ie  = "vowels (i, e)"
+}
+
+.alphabet ^ long_vowel .base diphthong_vowel non_diphthong_vowel {
   aa  = "long tehta (a)"
   ee  = "long tehta (e)"
   ii  = "long tehta (i)"
@@ -27,22 +40,25 @@
   uu  = "long tehta (u)"
 }
 
-.atom * vowel : short_vowel long_vowel { }
+.alphabet * vowel .base short_vowel long_vowel { }
 
-/* consonants */
-.atom #1 single_consonant {
+/*
+ * consonants
+ */
+ 
+.alphabet #1 single_consonant {
   s   = "silme"
   n   = "numen"
   m   = "malta"
-}.
+}
 
-.atom #2 double_consonant {
+.alphabet #2 double_consonant {
   ss  = "esse"
   nn  = "long numen"
   mm  = "long malta"
 }
 
-.atom #n denasaled_consonant {
+.alphabet #n denasaled_consonant {
   t   = "tinco"
   p   = "parma"
   c   = "calma"
@@ -50,30 +66,30 @@
   w   = "vilya"
 }
 
-.atom #N nasaled_consonant {
+.alphabet #N nasaled_consonant {
   nt  = "anto"
   mp  = "ampa"
   nc  = "anca"
   nqu = "unque"
-  ngw = "ngwalme"
+  n'  = "ngoldo"
+  n'w = "ngwalme"
   nd  = "ando"
   mb  = "umbar"
-  nq  = "anga"
+  ng  = "anga"
   ngw = "ungwe"
-  ng  = "ngoldo"
 }
 
-.atom #h deaspirate_consonant {
+.alphabet #h deaspirate_consonant {
   l   = "lambe"
   r   = "romen"
 }
 
-.atom #H aspirate_consonant {
+.alphabet #H aspirate_consonant {
   hl  = "hwesta sindarinwa + lambe"
   hr  = "hwesta sindarinwa + romen"
 }
 
-.atom #$ soft_consonant {
+.alphabet #$ soft_consonant {
   ty  = "soft tinco"
   ny  = "soft numen"
   ly  = "soft lambe"
@@ -81,7 +97,7 @@
   hy  = "soft hyarmen"
 }
 
-.atom #~ other_consonant {
+.alphabet #~ other_consonant {
   th  = "thule"
   f   = "formen"
   x   = "harma"
@@ -92,7 +108,22 @@
   h   = "hyarmen"
 }
 
-.atom # consonant : single_consonant double_consonant
-                    denasaled_consonant nasaled_consonant
-                    deaspirate_consonant aspirate_consonant
-                    soft_consonant other_consonant { }
+.alphabet # consonant .base single_consonant double_consonant denasaled_consonant nasaled_consonant deaspirate_consonant aspirate_consonant soft_consonant other_consonant { }
+
+/*
+ * mutations
+ */
+ 
+.mutation !n denasalize {
+  nt  = t
+  mp  = p
+  nc  = c
+  nqu = qu
+}
+
+.mutation !N nasalize {
+  t  = nt
+  p  = mp
+  c  = nc
+  qu = nqu
+}

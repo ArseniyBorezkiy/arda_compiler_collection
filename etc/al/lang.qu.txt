@@ -1,23 +1,25 @@
-/* test.qu */
+/* lang.qu */
 
 .language quenya 1 1
 
-.alphabet # consonants {
-	l  = "lambe"
-	s  = "silme"
-	t  = "tinco"
-	p  = "parma"
-	m  = "malta"
+/* ==========================
+ * QUENYA LANGUAGE DEFINITION
+ * ========================== */
+ 
+.vocabular stem
+
+.include "etc.qu.txt"
+.include "adj.qu.txt"
+
+.match .forward main {
+  a_adjective
 }
 
-.alphabet * vowel {
-	a = "tehta a"
-	o = "tehta o"
-	u = "tehta u"
-	e = "tehta e"
-	i = "tehta i"
-}
+.target main
 
+.include "voc.qu.txt"
+
+/*
 .attribute part_of_speech {
 	noun. = "the noun"
 	verb. = "the verb"
@@ -36,14 +38,12 @@
 }
 
 .match .forward verb {
-	+#
+	=#-!N
 }
 
 .match .forward never {
 	- | verb.
 }
-
-.vocabular stem
 
 .match .forward main {
 	noun  stem | noun.
@@ -51,9 +51,10 @@
 	never stem | noun.
 }
 
-.target main
+
 
 .vocabulary voc {
 	ampa  noun.
 	lasta verb.
 }
+*/

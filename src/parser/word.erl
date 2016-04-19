@@ -31,7 +31,7 @@ parse (Word) ->
   Table = ets:new ('case storage', [ set, private, { keypos, 2 } ]),
   try
     [ Match ] = model:ensure (target),
-    Rule = #rule { instance = { Match, 1, 1 }, name = Match },
+    Rule = #rule { instance = { Match, 1, 1 }, name = Match, direction = forward },
     horizontal ([ Rule ], [], Word, Table, []),
     dump_detail (Word, Table),
     Words = dump_words (Word, Table),
@@ -120,7 +120,7 @@ horizontal ([ Rule | Tail ], Guards, Word, Table, OID1)
       end;
     Subrules ->
       % match subrules
-      detail (OID2, " : rule: '~s', word: '~s' | ~p", [ Match, Word, length (Guards) ]),
+      detail (OID2, " : rule: '~s', word: '~s' | ~p", [ Match, Word, Guards ]),
       Vertical =
         fun (Horizontal, Ordinal) ->
           Subguards  = model:get_guards (Match, Ordinal),

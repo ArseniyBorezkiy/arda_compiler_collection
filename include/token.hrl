@@ -35,9 +35,12 @@
 -define (TT_CLASS,         class).
 -define (TT_MATCH,         match).
 -define (TT_DIRECTION,     direction).
+-define (TT_VOCABULARY,    vocabulary).
+-define (TT_ALPHABET,      alphabet).
+-define (TT_MUTATION,      mutation).
 
 -define (TT_ASSIGNMENT,    assignment).
--define (TT_GUARG,         guard).
+-define (TT_GUARD,         guard).
 
 -define (TT_WILDCARD,      wildcard).
 -define (TT_PHONEME,       phoneme).

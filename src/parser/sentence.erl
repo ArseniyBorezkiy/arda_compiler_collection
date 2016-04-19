@@ -93,4 +93,4 @@ do_format ([ #word { oid = OID, guards = Guards, route = Route, stem = Stem } | 
   Comment    = word:format_oid (OID),
   Format     = "  ~s { /* ~s */~n~s    /*~n~s    */~n  }~n",
   Result     = lists:flatten (io_lib:format (Format, [ Stem, Comment, Attributes, Trace ])),
-  format (Tail, Acc ++ Result).
+  do_format (Tail, Acc ++ Result).

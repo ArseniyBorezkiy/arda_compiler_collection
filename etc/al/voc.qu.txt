@@ -1,3 +1,18 @@
 /* voc.qu */
-last-a vb. A
-wilya- n. E
+
+.language quenya 1 1
+
+/* =================
+ * QUENYA VOCABULARY
+ * ================= */
+ 
+/*
+ * adjectives
+ */
+ 
+.vocabulary v_adjectives {
+  alasta
+  blaste
+  blasta
+  clastea
+}
