@@ -10,7 +10,7 @@
     { applications, [ kernel, stdlib ] },
     { mod, { al_sup, [
       { log_cl, 10 },
-      { log_fl, 10 },
+      { log_fl, 2 },
       { log,    "al.log" },
       { ref,    "lang.qu.txt" },
       { lang,   "etc/al" },

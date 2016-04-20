@@ -1,4 +1,4 @@
-/* voc.qu */
+.global /* voc.qu */
 
 .language quenya 1 1
 
@@ -12,7 +12,8 @@
  
 .vocabulary v_adjectives {
   alasta
-  blaste
+  blaste AD.E
   blasta
   clastea
+  parma ND.V
 }

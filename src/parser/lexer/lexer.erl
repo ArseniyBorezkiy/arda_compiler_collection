@@ -17,6 +17,7 @@
           % payload
           include_file/2,
           load_token/2,
+          reset_token/2,
           next_token/0,
           next_token/1,
           next_token_type/0,
@@ -89,6 +90,10 @@ load_token (Token, Type) ->
   Pid = erlang:self (),
   gen_server:cast (?MODULE, { token, load, Pid, Token, Type }).
 
+reset_token (Token, Type) ->
+  Pid = erlang:self (),
+  gen_server:cast (?MODULE, { token, reset, Pid, Token, Type }).
+
 next_token () ->
   Pid = erlang:self (),
   case gen_server:call (?MODULE, { token, next, Pid }) of
@@ -96,12 +101,22 @@ next_token () ->
     Result -> Result
   end.
 
-next_token (Type) ->
+next_token (Type) when is_atom (Type) ->
   case next_token () of
     { Type, Token } -> Token;
     { Other, Token } ->
       Format = "expected token '~s' of type '~p' instead of '~p'",
       debug:result (?MODULE, Format, [ Token, Type, Other ]),
+      throw (error)
+  end;
+
+next_token (Types) when is_list (Types) ->
+  { Type, Token } = next_token (),
+  case lists:member (Type, Types) of
+    true  -> { Type, Token };
+    false ->
+      Format = "expected token '~s' of any type from '~p' instead of '~p'",
+      debug:result (?MODULE, Format, [ Token, Types, Type ]),
       throw (error)
   end.
 
@@ -208,6 +223,17 @@ handle_cast ({ token, load, Pid, Token, Type }, State) ->
     true ->
       { Server, _FileOut } = dict:fetch (Pid, Dict),
       gen_lexer:load_token (Server, Token, Type);
+    false ->
+      debug:error (?MODULE, "unauthorized access of ~p", [ Pid ])
+  end,
+  { noreply, State };
+
+handle_cast ({ token, reset, Pid, Token, Type }, State) ->
+  Dict = State#s.dict,
+  case dict:is_key (Pid, Dict) of
+    true ->
+      { Server, _FileOut } = dict:fetch (Pid, Dict),
+      gen_lexer:reset_token (Server, Token, Type);
     false ->
       debug:error (?MODULE, "unauthorized access of ~p", [ Pid ])
   end,

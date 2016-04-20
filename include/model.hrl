@@ -36,8 +36,9 @@
 % rule storage
 %
 
--type filter_result_t () :: { string (), string () } | false | error .
--type filter_t () :: fun ((string (), string ()) -> filter_result_t ()).
+-type filter_in_t ()  :: { string (), string (), unsigned_t () } .
+-type filter_out_t () :: filter_in_t () | false | error .
+-type filter_t ()     :: fun ((filter_in_t ()) -> filter_out_t ()).
 
 -record (match,  { name :: string () }).
 
@@ -92,6 +93,6 @@
 % unique phoneme prefixes
 %
 
--define (UP_MUTATION (P), [ ' ' | P ]).
+-define (UPREFIX (P, T), [ 32 | [ P | T ] ]).
 
 -endif. % __MODEL_HRL__

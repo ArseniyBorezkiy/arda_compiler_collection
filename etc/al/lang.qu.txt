@@ -1,4 +1,4 @@
-/* lang.qu */
+.global /* lang.qu */
 
 .language quenya 1 1
 
@@ -10,51 +10,19 @@
 
 .include "etc.qu.txt"
 .include "adj.qu.txt"
+.include "noun.qu.txt"
+/* .include "verb.qu.txt" */
 
 .match .forward main {
-  a_adjective
+  m_adjective
+  m_noun
+  /* m_verb */
 }
 
 .target main
 
 .include "voc.qu.txt"
 
-/*
-.attribute part_of_speech {
-	noun. = "the noun"
-	verb. = "the verb"
-}
-
-.class info {
-	part_of_speech
-}
-
-.match .forward subnoun {
-  +*
-}
-
-.match .forward noun {
-	subnoun
-}
-
-.match .forward verb {
-	=#-!N
-}
-
-.match .forward never {
-	- | verb.
-}
-
-.match .forward main {
-	noun  stem | noun.
-	verb  stem | verb.
-	never stem | noun.
-}
-
-
-
-.vocabulary voc {
-	ampa  noun.
-	lasta verb.
-}
-*/
+/* ==========================
+ * END OF LANGUAGE DEFINITION
+ * ========================== */

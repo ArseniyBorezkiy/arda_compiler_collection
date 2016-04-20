@@ -40,12 +40,15 @@ parse () ->
   lexer:load_token (".attribute",  ?TT_SECTION),
   lexer:load_token (".match",      ?TT_SECTION),
   lexer:load_token (".alphabet",   ?TT_SECTION),
+  lexer:load_token (".wildcard",   ?TT_SECTION),
   lexer:load_token (".vocabulary", ?TT_SECTION),
   lexer:load_token (".target",     ?TT_SECTION),
   lexer:load_token (".vocabular",  ?TT_SECTION),
   lexer:load_token (".include",    ?TT_SECTION),
   lexer:load_token (".mutation",   ?TT_SECTION),
   lexer:load_token (".base",       ?TT_SECTION),
+  lexer:load_token (".global",     ?TT_SECTION),
+  lexer:load_token (".module",     ?TT_SECTION),
   lexer:load_token (".forward",    ?TT_DIRECTION),
   lexer:load_token (".backward",   ?TT_DIRECTION),
   lexer:load_token ("{",  ?TT_CONTENT_BEGIN),
@@ -57,6 +60,7 @@ parse () ->
   % setting up process dictionary
   erlang:put (comment, 0),
   erlang:put (state, main),
+  erlang:put (global, true),
   % start parsing
   loop (main).
 
@@ -122,9 +126,7 @@ main (?TT_SECTION, ".match") ->
   match_rule;
 
 main (?TT_SECTION, ".alphabet") ->
-  % '.alphabet' wildcard name [ '.base' { name } ] '{'
-  Wildcard = lexer:next_token (?TT_DEFAULT),
-  lexer:load_token (Wildcard, ?TT_WILDCARD),
+  % '.alphabet' name [ '.base' { name } ] '{'
   Name = lexer:next_token (?TT_DEFAULT),
   lexer:load_token (Name, ?TT_ALPHABET),
   { Parents, State } =
@@ -134,16 +136,53 @@ main (?TT_SECTION, ".alphabet") ->
       { ?TT_SECTION, ".base" } ->
         get_parents (?TT_ALPHABET, alphabet)
     end,
-  Tag = [ proplists:property (wildcard, Wildcard),
-          proplists:property (base, Parents) ],
+  Tag = [ proplists:property (base, Parents) ],
   model:create_entity (Name, ?ET_ALPHABET, Tag),
   erlang:put (base, Name),
   State;
 
-main (?TT_SECTION, ".mutation") ->
-  % '.mutation' wildcard name [ '.base' { name } ] '{'
+main (?TT_SECTION, ".wildcard") ->
+  % '.wildcard' wildcard name
   Wildcard = lexer:next_token (?TT_DEFAULT),
   lexer:load_token (Wildcard, ?TT_WILDCARD),
+  { Type, Name } = lexer:next_token ([ ?TT_ALPHABET, ?TT_MUTATION ]),
+  Tag = [ proplists:property (wildcard, Wildcard),
+          proplists:property (base, [ Name ]),
+          proplists:property (global, erlang:get (global)),
+          proplists:property (token, { ?TT_WILDCARD, Wildcard }) ],
+  model:create_entity (?UPREFIX (Wildcard, Name), Type, Tag),
+  main;
+
+main (?TT_SECTION, ".global") ->
+  % '.global'
+  erlang:put (global, true),
+  main;
+
+main (?TT_SECTION, ".module") ->
+  % '.module'
+  erlang:put (global, false),
+  Filter =
+    fun (#entity { tag = Tag }) ->
+      case proplists:get_value (global, Tag) of
+        undefined -> false;
+        true      -> false;
+        false     -> true
+      end
+    end,
+  Deleted = model:delete_entities (Filter),
+  Fun =
+    fun (#entity { tag = Tag }) ->
+      case proplists:get_value (token, Tag) of
+        undefined -> ok;
+        { Type, Token } ->
+          lexer:reset_token (Token, Type)
+      end
+    end,
+  lists:foreach (Fun, Deleted),
+  main;
+
+main (?TT_SECTION, ".mutation") ->
+  % '.mutation' name [ '.base' { name } ] '{'
   Name = lexer:next_token (?TT_DEFAULT),
   lexer:load_token (Name, ?TT_MUTATION),
   { Parents, State } =
@@ -153,8 +192,7 @@ main (?TT_SECTION, ".mutation") ->
       { ?TT_SECTION, ".base" } ->
         get_parents (?TT_MUTATION, mutation)
     end,
-  Tag = [ proplists:property (wildcard, Wildcard),
-          proplists:property (base, Parents) ],
+  Tag = [ proplists:property (base, Parents) ],
   model:create_entity (Name, ?ET_MUTATION, Tag),
   erlang:put (base, Name),
   State;
@@ -258,7 +296,7 @@ mutation (?TT_PHONEME, PhonemeSrc) ->
   lexer:next_token (?TT_ASSIGNMENT),
   PhonemeDst = lexer:next_token (?TT_PHONEME),
   Entity = erlang:get (base),
-  model:create_property (Entity, ?UP_MUTATION (PhonemeSrc), PhonemeDst),
+  model:create_property (Entity, ?UPREFIX (Entity, PhonemeSrc), PhonemeDst),
   mutation;
 
 mutation (?TT_WILDCARD, WildcardSrc) ->
@@ -269,7 +307,7 @@ mutation (?TT_WILDCARD, WildcardSrc) ->
   Entity = erlang:get (base),
   Fun =
     fun (PhonemeSrc) ->
-      model:create_property (Entity, ?UP_MUTATION (PhonemeSrc), PhonemeDst)
+      model:create_property (Entity, ?UPREFIX (Entity, PhonemeSrc), PhonemeDst)
     end,
   lists:foreach (Fun, PhonemesSrc),
   mutation;

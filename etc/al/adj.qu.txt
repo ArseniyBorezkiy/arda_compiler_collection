@@ -1,4 +1,4 @@
-/* adj.qu */
+.module /* adj.qu */
 
 .language quenya 1 1
 
@@ -17,9 +17,9 @@
 }
 
 .attribute aa_declension {
-  AA  = "A-vovel declension"
-  AE  = "E-vovel declension"
-  AEA = "EA-vovel declension"
+  AD.A  = "A-vovel declension"
+  AD.E  = "E-vovel declension"
+  AD.EA = "EA-vovel declension"
 }
 
 /*
@@ -32,26 +32,32 @@
 }
 
 /*
- * normalizators
+ * reflections
  */
  
-.mutation !A a_normalize {
-  e  = a
-  i  = e
-  ie = ea
-}
+.mutation fa_normalize_1 { e = a }
+.mutation fa_normalize_2 { i = e }
+.mutation fa_normalize_3 { ie = ea }
+
+/*
+ * wildcards
+ */
+ 
+.wildcard (e>a)   fa_normalize_1
+.wildcard (i>e)   fa_normalize_2
+.wildcard (ie>ea) fa_normalize_3
 
 /*
  * rules
  */
-
-.match .backward a_number {
-  -!A=e  | A.pl. AA
-  -!A=i  | A.pl. AE
-  -!A=ie | A.pl. AEA
+ 
+.match .backward ma_number {
+  -(e>a)=e    | A.pl. AD.A
+  -(i>e)=i    | A.pl. AD.E
+  -(ie>ea)=ie | A.pl. AD.EA
 }
 
-.match .forward a_adjective {
-  stem          | A.sg.
-  stem a_number
+.match .forward m_adjective {
+  stem           | A.sg.
+  stem ma_number
 }

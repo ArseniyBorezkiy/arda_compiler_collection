@@ -1,63 +1,106 @@
-/* noun.qu */
+.module /* noun.qu */
 
-/* attributes */
+.language quenya 1 1
+
+/* =====================
+ * NOUN CLASS DEFINITION
+ * ===================== */
+ 
+/*
+ * attributes
+ */
+ 
 .attribute an_owner {
-  0p.        = "independent"
-  1p.sg.s.   = "1-st single person's"
-  2p.sg.f.s. = "2-nd single familiar person's"
-  2p.sg.r.s. = "2-nd single respectfully person's"
-  3p.sg.s.   = "3-rd single person's"
+  N.0p.        = "independent"
+  N.1p.sg.o.   = "1-st single person's"
+  N.2p.sg.f.o. = "2-nd single familiar person's"
+  N.2p.sg.r.o. = "2-nd single respectfully person's"
+  N.3p.sg.o.   = "3-rd single person's"
 }
 
 .attribute an_declension {
-  E  = "E-vovel declension"
-  IE = "IE-vovel declension"
-  R  = "R-vovel declension"
+  ND.V  = "vovel declension"
+  ND.E  = "E-vovel declension"
+  ND.C  = "consonant declension"
 }
 
 .attribute an_number {
-  sg.  = "singular number"
-  pl.  = "plural number"
-  du.  = "dual number"
+  N.sg.  = "singular number"
+  N.pl.  = "plural number"
+  N.du.  = "dual number"
 }
 
 .attribute an_has_vowel {
-  h.c.w.i.  = "has connective vowel (i)"
+  N.h.cw.  = "has connective vowel (i)"
+  N.hn.cw. = "has not connective vowel (i)"
 }
 
-/* implementation */
-.class noun n. {
+.attribute an_case {
+  N.n.   = "nominative case"
+  N.gen. = "genetive case"
+  N.dat. = "dative case"
+  N.acc. = "accusative case"
+  N.loc. = "locative case"
+  N.all. = "allative case"
+  N.abl. = "ablative case"
+  N.ins. = "instrumental case"
+}
+
+/*
+ * class implementation
+ */
+ 
+.class noun {
   an_owner
   an_number
+  an_case
   an_declension
   an_has_vowel
 }
 
-/* rules */
-.match n_steam {
-  .vocabulary n.
+/*
+ * special alphabet
+ */
+
+.alphabet n_vowel_declension .base aou_vowel i_vowel ie_vowel { }
+
+/*
+ * reflections
+ */
+
+.mutation fn_restore_vovel { i = e }
+
+/*
+ * wildcards
+ */
+
+.wildcard (i>e) fn_restore_vovel
+.wildcard (a,o,u,i,ie) n_vowel_declension
+
+/*
+ * rules
+ */
+
+.match .backward mn_number {
+  =(a,o,u,i,ie)+r | N.pl. N.n.
+  -(i>e)=i        | N.pl. N.n. ND.E
+  =#+i            | N.pl. N.n. ND.C
 }
 
-.match n_number {
-  -r  | pl. R
-  -*  | pl. E
-  -ie | pl. IE
+.match .backward mn_vowel {
+  =#+i | N.h.cw.
+  =*   | N.hn.cw.
+  =#   | N.hn.cw. N.0p.
 }
 
-.match n_vowel {
- -(#)i- | h.c.w.i.
- -*-
+.match .backward mn_owner {
+  +nya | N.1p.sg.o.
+  +tya | N.2p.sg.f.o.
+  +lya | N.2p.sg.r.o.
+  +rya | N.3p.sg.o.
 }
 
-.match n_owner {
-  -nya- | 1p.sg.s.
-  -tya- | 2p.sg.f.s.
-  -lya- | 2p.sg.r.s.
-  -rya- | 3p.sg.s.
-}
-
-.match noun {
-  n_steam | sg. 0p.
-  n_steam n_number | 0p.
-  n_steam n_vowel n_owner n_number
+.match .forward m_noun {
+  stem mn_number | N.0p.
+  stem mn_vowel mn_owner mn_number
 }

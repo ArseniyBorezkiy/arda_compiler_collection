@@ -16,6 +16,7 @@
           % payload
           include_file/3,
           load_token/3,
+          reset_token/3,
           next_token/1
          ]).
 
@@ -89,6 +90,10 @@ include_file (Server, Dir, Name)
 load_token (Server, Token, Type)
   when is_list (Token) ->
   gen_server:cast (Server, { token, load, Token, Type }).
+
+reset_token (Server, Token, Type)
+  when is_list (Token) ->
+  gen_server:cast (Server, { token, reset, Token, Type }).
 
 next_token (Server) ->
   case gen_server:call (Server, { token, next }) of
@@ -211,6 +216,26 @@ handle_cast ({ token, load, Token, Type }, State) ->
       Error  = format (Format, [ Token, Type, OtherType ]),
       Module = State#s.module,
       Module:error (State#s.server, Error),
+      { noreply, State }
+  end;  
+
+handle_cast ({ token, reset, Token, Type }, State) ->
+  Table = State#s.table,
+  case ets:lookup (Table, Token) of
+    [] ->
+      Format = "token ~p of type ~p not found to be reset",
+      Error  = format (Format, [ Token, Type ]),
+      Module = State#s.module,
+      Module:error (State#s.server, Error),      
+      { noreply, State };
+    [ { Token, Type } | _ ] ->
+      ets:delete (Table, Token),
+      { noreply, State };
+    [ { Token, OtherType } | _ ] ->
+      Format = "token ~p of type ~p to be reset cause has type ~p",
+      Error  = format (Format, [ Token, Type, OtherType ]),
+      Module = State#s.module,
+      Module:error (State#s.server, Error), 
       { noreply, State }
   end;  
 

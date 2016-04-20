@@ -1,4 +1,4 @@
-/* ect.qu */
+.global /* ect.qu */
 
 .language quenya 1 1
 
@@ -7,18 +7,38 @@
  * =========================== */
  
 /*
- * vowels
+ * basic vowel groups
  */
- 
-.alphabet @S short_vowel {
+
+.alphabet aou_vowel {
   a   = "tehta (a)"
-  e   = "tehta (e)"
-  i   = "tehta (i)"
   o   = "tehta (o)"
   u   = "tehta (u)"
 }
 
-.alphabet @D diphthong_vowel {
+.alphabet e_vowel {
+  e   = "tehta (e)"
+}
+
+.alphabet i_vowel {
+  i   = "tehta (i)"
+}
+
+.alphabet ie_vowel {
+  ie  = "vowels (i, e)"
+}
+
+.alphabet ea_vowel {
+  ea  = "vowels (e, a)"
+}
+
+/*
+ * vowels
+ */
+ 
+.alphabet short_vowel .base aou_vowel e_vowel i_vowel { }
+
+.alphabet diphthong_vowel {
   ai  = "diphthong (ai)"
   oi  = "diphthong (oi)"
   ui  = "diphthong (ui)"
@@ -27,12 +47,7 @@
   iu  = "diphthong (iu)"
 }
 
-.alphabet @P non_diphthong_vowel {
-  ea  = "vowels (e, a)"
-  ie  = "vowels (i, e)"
-}
-
-.alphabet ^ long_vowel .base diphthong_vowel non_diphthong_vowel {
+.alphabet long_vowel {
   aa  = "long tehta (a)"
   ee  = "long tehta (e)"
   ii  = "long tehta (i)"
@@ -40,25 +55,29 @@
   uu  = "long tehta (u)"
 }
 
-.alphabet * vowel .base short_vowel long_vowel { }
+.alphabet non_diphthong_vowel .base ie_vowel ea_vowel { }
+
+.alphabet pair_vowel .base long_vowel diphthong_vowel non_diphthong_vowel { }
+
+.alphabet vowel .base short_vowel pair_vowel { }
 
 /*
  * consonants
  */
  
-.alphabet #1 single_consonant {
+.alphabet single_consonant {
   s   = "silme"
   n   = "numen"
   m   = "malta"
 }
 
-.alphabet #2 double_consonant {
+.alphabet double_consonant {
   ss  = "esse"
   nn  = "long numen"
   mm  = "long malta"
 }
 
-.alphabet #n denasaled_consonant {
+.alphabet denasaled_consonant {
   t   = "tinco"
   p   = "parma"
   c   = "calma"
@@ -66,7 +85,7 @@
   w   = "vilya"
 }
 
-.alphabet #N nasaled_consonant {
+.alphabet nasaled_consonant {
   nt  = "anto"
   mp  = "ampa"
   nc  = "anca"
@@ -79,17 +98,17 @@
   ngw = "ungwe"
 }
 
-.alphabet #h deaspirate_consonant {
+.alphabet deaspirate_consonant {
   l   = "lambe"
   r   = "romen"
 }
 
-.alphabet #H aspirate_consonant {
+.alphabet aspirate_consonant {
   hl  = "hwesta sindarinwa + lambe"
   hr  = "hwesta sindarinwa + romen"
 }
 
-.alphabet #$ soft_consonant {
+.alphabet soft_consonant {
   ty  = "soft tinco"
   ny  = "soft numen"
   ly  = "soft lambe"
@@ -97,7 +116,7 @@
   hy  = "soft hyarmen"
 }
 
-.alphabet #~ other_consonant {
+.alphabet other_consonant {
   th  = "thule"
   f   = "formen"
   x   = "harma"
@@ -108,22 +127,33 @@
   h   = "hyarmen"
 }
 
-.alphabet # consonant .base single_consonant double_consonant denasaled_consonant nasaled_consonant deaspirate_consonant aspirate_consonant soft_consonant other_consonant { }
+.alphabet consonant .base single_consonant double_consonant denasaled_consonant nasaled_consonant deaspirate_consonant aspirate_consonant soft_consonant other_consonant { }
 
 /*
- * mutations
+ * reflections
  */
  
-.mutation !n denasalize {
+.mutation denasalize {
   nt  = t
   mp  = p
   nc  = c
   nqu = qu
 }
 
-.mutation !N nasalize {
+.mutation nasalize {
   t  = nt
   p  = mp
   c  = nc
   qu = nqu
 }
+
+/*
+ * global wildcards
+ */
+
+.wildcard * vowel
+.wildcard # consonant
+
+.wildcard @ short_vowel
+.wildcard ^ long_vowel
+.wildcard % pair_vowel

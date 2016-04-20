@@ -21,6 +21,7 @@
           create_guard/5,
           create_stem/2,
           create_characteristic/3,
+          delete_entities/1,
           get_entities/0,
           get_properties/1,
           get_recursive_properties/2,
@@ -123,6 +124,12 @@ create_characteristic (Vocabulary, Stem, Property) ->
   Key = { Stem, Property },
   Object = #characteristic { instance = Key, vocabulary = Vocabulary },
   gen_server:cast (?MODULE, { voc, create, Key, Object }).
+
+delete_entities (Filter) ->
+  Mask = #entity { name = '_',
+                   type = '_',
+                   tag  = '_' },
+  gen_server:call (?MODULE, { model, delete, Mask, Filter }).
 
 %
 % getters
@@ -291,7 +298,20 @@ handle_call ({ ensure, Name }, _, State) ->
         dispatcher:fatal_error (),
         false
     end,
-  { reply, Value, State }.
+  { reply, Value, State };
+
+handle_call ({ Target, delete, Mask, Filter }, _, State) ->
+  Table =
+    case Target of
+      rule  -> State#s.rules;
+      model -> State#s.model;
+      voc   -> State#s.voc
+    end,
+  Entries = ets:match_object (Table, Mask),
+  Deletes = lists:filter (Filter, Entries),
+  Fun = fun (Delete) -> ets:delete_object (Table, Delete) end,
+  lists:foreach (Fun, Deletes),
+  { reply, Deletes, State }.
 
 handle_cast ({ Target, create, Key, Object }, State) ->
   case Target of
