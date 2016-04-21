@@ -11,11 +11,19 @@
  */
  
 .attribute an_owner {
-  N.0p.        = "independent"
-  N.1p.sg.o.   = "1-st single person's"
-  N.2p.sg.f.o. = "2-nd single familiar person's"
-  N.2p.sg.r.o. = "2-nd single respectfully person's"
-  N.3p.sg.o.   = "3-rd single person's"
+  N.0p.          = "independent"
+  /* single */
+  N.1p.sg.o.     = "1-st single person's"
+  N.2p.sg.f.o.   = "2-nd single familiar person's"
+  N.2p.sg.r.o.   = "2-nd single respectfully person's"
+  N.3p.sg.o.     = "3-rd single person's"
+  /* dual */
+  N.1p.du.exc.o. = "1-st dual exclusive person's"
+  N.1p.du.inc.o. = "1-st dual inclusive person's"
+  /* plural */
+  N.1p.pl.exc.o. = "1-st plural exclusive person's"
+  N.1p.pl.inc.o. = "1-st plural inclusive person's"
+  N.3p.pl.o.     = "3-st plural person's"
 }
 
 .attribute an_declension {
@@ -31,12 +39,13 @@
 }
 
 .attribute an_has_vowel {
-  N.h.cw.  = "has connective vowel (i)"
-  N.hn.cw. = "has not connective vowel (i)"
+  N.h.cw.  = "has connective vowel (e; i)"
+  N.hn.cw. = "has not connective vowel (e; i)"
 }
 
 .attribute an_case {
-  N.n.   = "nominative case"
+  N.nom. = "nominative case"
+  N.pos. = "posessive case"
   N.gen. = "genetive case"
   N.dat. = "dative case"
   N.acc. = "accusative case"
@@ -51,6 +60,7 @@
  */
  
 .class noun {
+  pars_orationis
   an_owner
   an_number
   an_case
@@ -68,39 +78,99 @@
  * reflections
  */
 
-.mutation fn_restore_vovel { i = e }
+.mutation fn_restore_vovel_e { i = e }
+.mutation fn_restore_vovel_a { o = a }
 
 /*
  * wildcards
  */
 
-.wildcard (i>e) fn_restore_vovel
+.wildcard (i>e) fn_restore_vovel_e
+.wildcard (o>a) fn_restore_vovel_a
 .wildcard (a,o,u,i,ie) n_vowel_declension
 
 /*
  * rules
  */
 
-.match .backward mn_number {
-  =(a,o,u,i,ie)+r | N.pl. N.n.
-  -(i>e)=i        | N.pl. N.n. ND.E
-  =#+i            | N.pl. N.n. ND.C
+.match .backward mn_case_number {
+  /* nominative case */
+  =.                | N.sg. N.nom.
+  =(a,o,u,i,ie)+r   | N.pl. N.nom.
+  -(i>e)=i          | N.pl. N.nom. ND.E
+  =#+i              | N.pl. N.nom. ND.C
+  /* accusative case */
+  =.                | N.sg. N.acc.
+  =(a,o,u,i,ie)+r   | N.pl. N.acc.
+  -(i>e)=i          | N.pl. N.acc. ND.E
+  =#+i              | N.pl. N.acc. ND.C
+  /* genetive case */
+  =o                | N.sg. N.gen.  /* oo -> o */
+  -(o>a)=o          | N.sg. N.gen.  /* ao -> o */
+  +o                | N.sg. N.gen.  /* -o -> -o */
+  =(a,o,u,i,ie)+ron | N.pl. N.gen.
+  -(i>e)=i+on       | N.pl. N.gen. ND.E
+  =#+ion            | N.pl. N.gen. ND.C
+  /* posessive case */
+  =*+va             | N.sg. N.pos.
+  =#+wa             | N.sg. N.pos. ND.C
+  +iva              | N.pl. N.pos.
+  /* dative case */
+  =*+n              | N.sg. N.dat.
+  =#+en             | N.sg. N.dat. ND.C
+  =i+n              | N.pl. N.dat. ND.V  /* -i-, -ii- -> -i- */
+  +in               | N.pl. N.dat.
+  /* locative case */
+  =*+sse            | N.sg. N.loc.
+  =#+esse           | N.sg. N.loc. ND.C
+  =*+ssen           | N.pl. N.loc.
+  =#+issen          | N.pl. N.loc. ND.C
+  /* allative case */
+  =*+nna            | N.sg. N.all.
+  =#+enna           | N.sg. N.all. ND.C
+  =*+nnar           | N.pl. N.all.
+  =#+innar          | N.pl. N.all. ND.C
+  /* ablative case */
+  =*+llo            | N.sg. N.all.
+  =#+ello           | N.sg. N.all. ND.C
+  =*+llor           | N.pl. N.all.
+  =*+llon           | N.pl. N.all.
+  =#+illor          | N.pl. N.all. ND.C
+  =#+illon          | N.pl. N.all. ND.C
+  /* instrumental case */
+  =*+nen            | N.sg. N.ins.
+  =#+enen           | N.sg. N.ins. ND.C
+  +inen             | N.pl. N.ins.
 }
 
 .match .backward mn_vowel {
-  =#+i | N.h.cw.
+  =#+i | N.h.cw. N.pl.
+  =#+i | N.h.cw. N.sg. N.1p.sg.o.
+  =#+e | N.h.cw. N.sg.
   =*   | N.hn.cw.
   =#   | N.hn.cw. N.0p.
 }
 
 .match .backward mn_owner {
-  +nya | N.1p.sg.o.
-  +tya | N.2p.sg.f.o.
-  +lya | N.2p.sg.r.o.
-  +rya | N.3p.sg.o.
+  =.      | N.0p.
+  /* singular */
+  +nya    | N.1p.sg.o.
+  +tya    | N.2p.sg.f.o.
+  +lya    | N.2p.sg.r.o.
+  =*+rya  | N.3p.sg.o.
+  =#+ya   | N.3p.sg.o.
+  /* dual */
+  +ngwa   | N.1p.du.inc.o.
+  +nqua   | N.1p.du.inc.o.
+  +mma    | N.1p.du.exc.o.
+  /* plural */
+  +lva    | N.1p.pl.inc.o.
+  +lwa    | N.1p.pl.inc.o.
+  +lma    | N.1p.pl.exc.o.
+  +lta    | N.3p.pl.o.
+  +nta    | N.3p.pl.o.
 }
 
 .match .forward m_noun {
-  stem mn_number | N.0p.
-  stem mn_vowel mn_owner mn_number
+  stem mn_vowel mn_owner mn_case_number
 }

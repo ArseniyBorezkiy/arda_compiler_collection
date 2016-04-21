@@ -1,0 +1,3 @@
+*** QUENYA TEST *** 
+AL -l -d ./tests.qu -i test.in.txt -o test.out.txt
+AL -l -d ./tests.qu -i test.in.txt -o test.out.txt

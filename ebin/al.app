@@ -11,10 +11,10 @@
     { mod, { al_sup, [
       { log_cl, 10 },
       { log_fl, 2 },
-      { log,    "al.log" },
+      { log,    "var/tmp/al.log" },
       { ref,    "lang.qu.txt" },
       { lang,   "etc/al" },
-      { src,    "priv" },
-      { dst,    "priv" } ] } }
+      { src,    "var" },
+      { dst,    "var" } ] } }
   ]
 }.

@@ -8,6 +8,12 @@
  
 .vocabular stem
 
+.attribute pars_orationis {
+  n.   = "noun"
+  adj. = "adjective"
+  vb.  = "verb"
+}
+
 .include "etc.qu.txt"
 .include "adj.qu.txt"
 .include "noun.qu.txt"

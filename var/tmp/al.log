@@ -1,0 +1,44 @@
+
+*** debug: al started 22.4.2016 at 0:26:15.
+
+*** debug: al started 22.4.2016 at 0:26:26.
+
+*** debug: al started 22.4.2016 at 0:27:12.
+
+*** debug: al started 22.4.2016 at 0:29:13.
+
+*** debug: al started 22.4.2016 at 0:29:30.
+!!! lexer: can not write to file "./priv/tests/test.out.txt" from <0.59.0> (reason: enoent).
+
+*** debug: al started 22.4.2016 at 0:30:5.
+!!! lexer: can not write to file "./priv/tests/test.out.txt" from <0.59.0> (reason: enoent).
+
+*** debug: al started 22.4.2016 at 0:30:34.
+!!! lexer: can not write to file "./priv/tests/test.out.txt" from <0.59.0> (reason: enoent).
+
+*** debug: al started 22.4.2016 at 0:31:1.
+!!! lexer: can not write to file "./priv/tests/test.out.txt" from <0.59.0> (reason: enoent).
+
+*** debug: al started 22.4.2016 at 0:32:43.
+!!! lexer: can not write to file "./priv/tests/test.out.txt" from <0.59.0> (reason: enoent).
+!!! lexer: can not write to file "./priv/tests/test.out.txt" from <0.68.0> (reason: enoent).
+
+*** debug: al started 22.4.2016 at 0:36:34.
+!!! lexer: can not write to file "./data/tests/test.out.txt" from <0.59.0> (reason: enoent).
+!!! lexer: can not write to file "./data/tests/test.out.txt" from <0.68.0> (reason: enoent).
+
+*** debug: al started 22.4.2016 at 0:38:5.
+!!! lexer: can not write to file "./var/tests/test.out.txt" from <0.59.0> (reason: enoent).
+!!! lexer: can not write to file "./var/tests/test.out.txt" from <0.68.0> (reason: enoent).
+
+*** debug: al started 22.4.2016 at 0:39:11.
+!!! lexer: can not write to file "./var/tests.qu/test.out.txt" from <0.59.0> (reason: enoent).
+!!! lexer: can not write to file "./var/tests.qu/test.out.txt" from <0.68.0> (reason: enoent).
+
+*** debug: al started 22.4.2016 at 0:39:44.
+
+*** debug: al started 22.4.2016 at 0:41:51.
+
+*** debug: al started 22.4.2016 at 0:42:7.
+
+*** debug: al started 22.4.2016 at 0:49:50.

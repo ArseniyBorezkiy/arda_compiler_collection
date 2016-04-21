@@ -155,7 +155,7 @@ do_parse_forward (Rule, Mode, Acc)
           Sort = fun (Ph1, Ph2) -> length (Ph1) > length (Ph2) end,
           case lists:sort (Sort, lists:filtermap (Filter, Phonemes)) of
             [] -> false;
-            [ Ph ] ->
+            [ Ph | _ ] ->
               case Mode of
                 skip -> { W, V, P + length (Ph) };
                 hold -> { W, V ++ Ph, P + length (Ph) };
@@ -312,7 +312,7 @@ do_parse_backward (Rule, Mode, Acc)
           Sort = fun (Ph1, Ph2) -> length (Ph1) > length (Ph2) end,
           case lists:sort (Sort, lists:filtermap (Filter, Phonemes)) of
             [] -> false;
-            [ Ph ] ->
+            [ Ph | _ ] ->
               case Mode of
                 skip -> { W, V, P + length (Ph) };
                 hold -> { W, Ph ++ V, P + length (Ph) };

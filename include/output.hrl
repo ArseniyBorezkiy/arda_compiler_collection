@@ -16,7 +16,8 @@
 -record (word, { oid    :: list (unsigned_t ()),
                  guards :: list (string ()),
                  route  :: list ({ string (), string () }),
-                 stem   :: string () }).
+                 stem   :: string (),
+                 class  :: string () }).
 
 -type word_t () :: # word { } .
 

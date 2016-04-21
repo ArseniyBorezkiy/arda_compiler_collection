@@ -130,6 +130,12 @@
 .alphabet consonant .base single_consonant double_consonant denasaled_consonant nasaled_consonant deaspirate_consonant aspirate_consonant soft_consonant other_consonant { }
 
 /*
+ * phomenes
+ */
+ 
+.alphabet phoneme .base vowel consonant { }
+
+/*
  * reflections
  */
  
@@ -151,6 +157,7 @@
  * global wildcards
  */
 
+.wildcard . phoneme
 .wildcard * vowel
 .wildcard # consonant
 

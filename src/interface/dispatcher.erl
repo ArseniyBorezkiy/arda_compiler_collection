@@ -11,9 +11,9 @@
           start_link/1,
           fatal_error/0,
           % payload
-          compile/2,
+          compile/3,
           % internal callbacks
-          process/2
+          process/3
         ]).
 
 % GEN SERVER CALLBACKS
@@ -47,8 +47,8 @@ fatal_error () ->
 % payload
 %
 
-compile (FileIn, FileOut) ->
-  gen_server:call (?MODULE, { compile, FileIn, FileOut }).
+compile (FileIn, FileOut, Options) ->
+  gen_server:call (?MODULE, { compile, FileIn, FileOut, Options }).
 
 % =============================================================================
 % GEN SERVER CALLBACKS
@@ -73,9 +73,10 @@ code_change (_, State, _) ->
 % dispatchers
 %
 
-handle_call ({ compile, FileIn, FileOut }, From, State) ->
+handle_call ({ compile, FileIn, FileOut, Options }, From, State) ->
   % start and register new process
-  { Pid, Ref } = erlang:spawn_monitor (?MODULE, process, [ FileIn, FileOut ]),
+  Args = [ FileIn, FileOut, Options ],
+  { Pid, Ref } = erlang:spawn_monitor (?MODULE, process, Args),
   Dict = dict:store ({ Pid, Ref }, { From, FileIn }, State#s.dict),
   { noreply, State#s { dict = Dict } }.
 
@@ -106,11 +107,11 @@ handle_info ({ 'DOWN', Ref, process, Pid, Reason }, State) ->
 % INTERNAL FUNCTIONS
 % =============================================================================
 
-process (FileIn, FileOut) ->  
+process (FileIn, FileOut, Options) ->  
   lexer:register (src, FileIn, FileOut),
   debug:section (?MODULE, "compiling ~p", [ FileIn ]),
   Reason =
-    try sentence:compile () of
+    try sentence:compile (Options) of
       Result ->
         debug:success (?MODULE, "compilation finished for ~p", [ FileIn ]),
         Result

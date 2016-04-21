@@ -33,6 +33,7 @@
           get_characteristics/2,
           get_entity/1,
           get_property/1,
+          select_properties/1,
           ensure/1,
           ensure/2,
           ensure/3
@@ -227,6 +228,11 @@ get_property (Name) ->
       dispatcher:fatal_error ();
     [ Property ] -> Property
   end.
+
+select_properties (Filtermap) ->
+  Mask = #property { name = '_', value = '_', entity = '_' },
+  Properties = gen_server:call (?MODULE, { model, select, Mask, '$_' }),
+  lists:filtermap (Filtermap, Properties).
 
 %
 % parametres

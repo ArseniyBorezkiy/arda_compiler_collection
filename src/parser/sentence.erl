@@ -6,7 +6,7 @@
 
 % API
 -export ([
-          compile/0
+          compile/1
         ]).
 
 % HEADERS
@@ -19,7 +19,10 @@
 % API
 % =============================================================================
 
-compile () ->
+compile (Options) ->
+  % store flags
+  Store = fun ({ K, V }) -> erlang:put (K, V) end,
+  lists:foreach (Store, Options),
   % setting up lexer
   lexer:load_token (" ",  ?TT_SEPARATOR),
   lexer:load_token ("\r", ?TT_SEPARATOR),
@@ -77,7 +80,7 @@ format ([ { Target, Words } | Tail ], Text) ->
   format (Tail, NewText).
 
 do_format ([], Acc) -> Acc;
-do_format ([ #word { oid = OID, guards = Guards, route = Route, stem = Stem } | Tail ], Acc) ->
+do_format ([ #word { oid = OID, guards = Guards, route = Route, stem = Stem, class = Class } | Tail ], Acc) ->
   GetAttributes =
     fun (Name, Acc0) ->
       Property = model:get_property (Name),
@@ -91,6 +94,6 @@ do_format ([ #word { oid = OID, guards = Guards, route = Route, stem = Stem } | 
   Attributes = lists:foldl (GetAttributes, "", Guards),
   Trace      = lists:foldl (GetRoute, "", Route),
   Comment    = word:format_oid (OID),
-  Format     = "  ~s { /* ~s */~n~s    /*~n~s    */~n  }~n",
-  Result     = lists:flatten (io_lib:format (Format, [ Stem, Comment, Attributes, Trace ])),
+  Format     = "  ~s ~s { /* ~s */~n~s    /*~n~s    */~n  }~n",
+  Result     = lists:flatten (io_lib:format (Format, [ Stem, Class, Comment, Attributes, Trace ])),
   do_format (Tail, Acc ++ Result).

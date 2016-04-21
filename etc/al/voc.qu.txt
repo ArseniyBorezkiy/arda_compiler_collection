@@ -10,10 +10,19 @@
  * adjectives
  */
  
-.vocabulary v_adjectives {
-  alasta
-  blaste AD.E
-  blasta
-  clastea
-  parma ND.V
+.vocabulary voc_adjectives {
+  loomea   adj. AD.EA
+}
+
+/*
+ * nouns
+ */
+ 
+.vocabulary voc_nouns {
+  laurelin n. ND.C
+  leera    n. ND.V
+  miire    n. ND.E
+  nixe     n. ND.E
+  heri     n. ND.V
+  hild     n. ND.C
 }

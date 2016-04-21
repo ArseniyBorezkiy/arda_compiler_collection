@@ -52,12 +52,12 @@
  */
  
 .match .backward ma_number {
+  =.          | A.sg.
   -(e>a)=e    | A.pl. AD.A
   -(i>e)=i    | A.pl. AD.E
   -(ie>ea)=ie | A.pl. AD.EA
 }
 
 .match .forward m_adjective {
-  stem           | A.sg.
   stem ma_number
 }

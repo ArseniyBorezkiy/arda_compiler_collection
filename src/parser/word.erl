@@ -59,15 +59,21 @@ horizontal ([], Guards, Word, Table, OID1) ->
                 true  -> Acc2;
                 false ->
                   OID2 = [ Acc2, Acc1 | OID1 ],
-                  FinalGuards = sets:to_list (sets:from_list (Guards ++ Subguards)),
-                  Args = [ Word, length (FinalGuards) ],
-                  detail (OID2, " : vocabular '~s' | ~p", Args),
-                  Entry = #word { oid    = OID2,
-                                  guards = FinalGuards,
-                                  route  = get_route (OID1, Table),
-                                  stem   = Stem },
-                  ets:insert (Table, Entry),
-                  Acc2 + 1
+                  FinalGuards = sets:to_list (sets:from_list (Guards ++ Subguards)),                  
+                  % determine word class
+                  case which_class (FinalGuards) of
+                    undefined -> Acc2 + 1;
+                    Class ->
+                      Args = [ Word, Class, length (FinalGuards) ],
+                      detail (OID2, " : vocabular '~s' ('~s') | ~p", Args),
+                      Entry = #word { oid    = OID2,
+                                      guards = FinalGuards,
+                                      route  = get_route (OID1, Table),
+                                      stem   = Stem,
+                                      class  = Class },
+                      ets:insert (Table, Entry),
+                      Acc2 + 1
+                  end
               end
             end,
           lists:foldl (Subsearch, 1000, Vocabularies),
@@ -152,6 +158,34 @@ is_conflict (Guards1, Guards2) ->
     end,
   lists:any (Fun2, Guards2).
 
+which_class (Guards) ->
+  case do_which_class (Guards, undefined) of
+    [] -> undefined;
+    [ Class ] -> Class;
+    Classes ->
+      debug:warning (?MODULE, "class ambiguity: ~p", [ Classes ]),
+      undefined
+  end.
+
+do_which_class ([], undefined) -> [];
+do_which_class ([], Classes) -> sets:to_list (Classes);
+do_which_class ([ Guard | Tail ], Classes1) ->
+  Attribute = model:get_entity_name (Guard),
+  Filtermap =
+    fun
+      (#property { name = #member { class = Class, member = Attribute0 } })
+        when Attribute == Attribute0 ->
+        { true, Class };
+      (_) -> false
+    end,
+  Classes2 = sets:from_list (model:select_properties (Filtermap)),
+  Classes  =
+    case Classes1 of
+      undefined -> Classes2;
+      _ -> sets:intersection (Classes1, Classes2)
+    end,
+  do_which_class (Tail, Classes).
+
 % =============================================================================
 % AUXILIARY FUNCTIONS
 % =============================================================================
@@ -192,7 +226,8 @@ dump_words (Word, Table) ->
   Unsorted = ets:match_object (Table, #word { oid    = '_',
                                               guards = '_',
                                               route  = '_',
-                                              stem   = '_' }),
+                                              stem   = '_',
+                                              class  = '_' }),
   Comparator =
     fun (#word { oid = OID1 }, #word { oid = OID2 }) ->
         string:to_integer (OID1) < string:to_integer (OID2)
@@ -202,9 +237,9 @@ dump_words (Word, Table) ->
     [] -> ok;
     _  ->
       Fun =
-        fun (#word { oid = OID, guards = Guards, route = Route, stem = Stem }) ->
-            Format = "~s : ~s | ~p",
-            Args   = [ format_oid (OID), Stem, Guards ],
+        fun (#word { oid = OID, guards = Guards, route = Route, stem = Stem, class = Class }) ->
+            Format = "~s (~s) : ~s | ~p",
+            Args   = [ format_oid (OID), Class, Stem, Guards ],
             debug:detail (?MODULE, Format, Args),
             PrintRoute =
               fun ({ Match, Value }) ->
