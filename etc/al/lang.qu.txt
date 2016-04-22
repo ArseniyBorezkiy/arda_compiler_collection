@@ -1,6 +1,12 @@
+/*
+ * Quenya grammar reference.
+ * Borezkiy Arseniy Petrovich.
+ */
+ 
 .global /* lang.qu */
 
-.language quenya 1 1
+.language quenya 1 100
+.compiler 1 0
 
 /* ==========================
  * QUENYA LANGUAGE DEFINITION
@@ -8,7 +14,7 @@
  
 .vocabular stem
 
-.attribute pars_orationis {
+.attribute pars_orationis 0 {
   n.   = "noun"
   adj. = "adjective"
   vb.  = "verb"

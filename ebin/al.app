@@ -9,7 +9,7 @@
     { registered, [] },
     { applications, [ kernel, stdlib ] },
     { mod, { al_sup, [
-      { log_cl, 10 },
+      { log_cl, 3 },
       { log_fl, 2 },
       { log,    "var/tmp/al.log" },
       { ref,    "lang.qu.txt" },

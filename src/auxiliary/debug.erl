@@ -1,6 +1,6 @@
 %% @doc Flexible debug service.
 %% @end
-%% @author Arseniy Fedorov <fedoarsen@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -module (debug).
@@ -26,7 +26,10 @@
           section/2,
           section/3,
           success/2,
-          success/3
+          success/3,
+          % tools
+          sprintf/2,
+          parse_int/1
          ]).
 
 % GEN SERVER CALLBACKS
@@ -126,6 +129,19 @@ success (Module, Message) ->
 success (Module, Format, Args) ->
   log (Module, ?DL_SUCCESS, Format, Args).
 
+%
+% tools
+%
+
+sprintf (Message, Args) ->
+  lists:flatten (io_lib:format (Message, Args)).
+
+parse_int (String) ->
+  case string:to_integer (String) of
+    { error, _ } -> throw (error);
+    { Int, _ } -> Int
+  end.
+    
 % =============================================================================
 % GEN SERVER CALLBACKS
 % =============================================================================
@@ -139,9 +155,11 @@ init ({ File, Levf, Levc }) ->
   { ok, Handle } = file:open (File, [ append ]),
   { Year, Month, Day } = erlang:date (),
   { Hour, Min, Sec }   = erlang:time(),
-  Format  = "~p.~p.~p at ~p:~p:~p",
-  Args    = [ Day, Month, Year, Hour, Min, Sec ],
-  log_entry (Handle, "~n*** ", ?MODULE, "al started " ++ Format, Args),
+  Format   = "~p.~p.~p at ~p:~p:~p",
+  Args     = [ ?BC_VERSION, ?FC_VERSION, Day, Month, Year, Hour, Min, Sec ],
+  log_entry (Handle, "~n*** ", ?MODULE, "al ~p.~p started " ++ Format, Args),
+  Greeting = "Arda lexical compiler server ~p.~p.~n~n",
+  io:format (Greeting, [ ?BC_VERSION, ?FC_VERSION ]),
   { ok, #state { c_level = Levc, f_level = Levf, handle = Handle } }.
 
 %

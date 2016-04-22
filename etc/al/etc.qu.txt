@@ -1,6 +1,12 @@
+/*
+ * Quenya grammar reference.
+ * Borezkiy Arseniy Petrovich.
+ */
+ 
 .global /* ect.qu */
 
-.language quenya 1 1
+.language quenya 1 100
+.compiler 1 0
 
 /* ===========================
  * TENGWAR ALPHABET DEFINITION

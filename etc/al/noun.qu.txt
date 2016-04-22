@@ -1,6 +1,12 @@
+/*
+ * Quenya grammar reference.
+ * Borezkiy Arseniy Petrovich.
+ */
+ 
 .module /* noun.qu */
 
-.language quenya 1 1
+.language quenya 1 100
+.compiler 1 0
 
 /* =====================
  * NOUN CLASS DEFINITION
@@ -9,8 +15,32 @@
 /*
  * attributes
  */
- 
-.attribute an_owner {
+
+.attribute an_declension 1 .verbose {
+  ND.V  = "vovel declension"
+  ND.E  = "E-vovel declension"
+  ND.C  = "consonant declension"
+}
+
+.attribute an_case 2 {
+  N.nom. = "nominative case"
+  N.pos. = "posessive case"
+  N.gen. = "genetive case"
+  N.dat. = "dative case"
+  N.acc. = "accusative case"
+  N.loc. = "locative case"
+  N.all. = "allative case"
+  N.abl. = "ablative case"
+  N.ins. = "instrumental case"
+}
+
+.attribute an_number 3 {
+  N.sg.  = "singular number"
+  N.pl.  = "plural number"
+  N.du.  = "dual number"
+}
+
+.attribute an_owner 4 {
   N.0p.          = "independent"
   /* single */
   N.1p.sg.o.     = "1-st single person's"
@@ -26,33 +56,9 @@
   N.3p.pl.o.     = "3-st plural person's"
 }
 
-.attribute an_declension {
-  ND.V  = "vovel declension"
-  ND.E  = "E-vovel declension"
-  ND.C  = "consonant declension"
-}
-
-.attribute an_number {
-  N.sg.  = "singular number"
-  N.pl.  = "plural number"
-  N.du.  = "dual number"
-}
-
-.attribute an_has_vowel {
+.attribute an_has_vowel 5 .verbose {
   N.h.cw.  = "has connective vowel (e; i)"
   N.hn.cw. = "has not connective vowel (e; i)"
-}
-
-.attribute an_case {
-  N.nom. = "nominative case"
-  N.pos. = "posessive case"
-  N.gen. = "genetive case"
-  N.dat. = "dative case"
-  N.acc. = "accusative case"
-  N.loc. = "locative case"
-  N.all. = "allative case"
-  N.abl. = "ablative case"
-  N.ins. = "instrumental case"
 }
 
 /*
@@ -131,12 +137,12 @@
   =*+nnar           | N.pl. N.all.
   =#+innar          | N.pl. N.all. ND.C
   /* ablative case */
-  =*+llo            | N.sg. N.all.
-  =#+ello           | N.sg. N.all. ND.C
-  =*+llor           | N.pl. N.all.
-  =*+llon           | N.pl. N.all.
-  =#+illor          | N.pl. N.all. ND.C
-  =#+illon          | N.pl. N.all. ND.C
+  =*+llo            | N.sg. N.abl.
+  =#+ello           | N.sg. N.abl. ND.C
+  =*+llor           | N.pl. N.abl.
+  =*+llon           | N.pl. N.abl.
+  =#+illor          | N.pl. N.abl. ND.C
+  =#+illon          | N.pl. N.abl. ND.C
   /* instrumental case */
   =*+nen            | N.sg. N.ins.
   =#+enen           | N.sg. N.ins. ND.C

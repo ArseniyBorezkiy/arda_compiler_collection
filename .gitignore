@@ -1,5 +1,5 @@
-/ebin/
-/priv/*.out.txt
-/*.log
-/*.dump
-/*.cookie
+/ebin/*.beam
+*.out.txt
+*.log
+*.dump
+*.cookie

@@ -1,6 +1,12 @@
+/*
+ * Quenya grammar reference.
+ * Borezkiy Arseniy Petrovich.
+ */
+
 .module /* adj.qu */
 
-.language quenya 1 1
+.language quenya 1 100
+.compiler 1 0
 
 /* ==========================
  * ADJECTIVE CLASS DEFINITION
@@ -9,17 +15,17 @@
 /*
  * attributes
  */
- 
-.attribute aa_number {
-  A.sg.  = "singular number"
-  A.pl.  = "plural number"
-  A.du.  = "dual number"
-}
 
-.attribute aa_declension {
+.attribute aa_declension 1 .verbose {
   AD.A  = "A-vovel declension"
   AD.E  = "E-vovel declension"
   AD.EA = "EA-vovel declension"
+}
+
+.attribute aa_number 2 {
+  A.sg.  = "singular number"
+  A.pl.  = "plural number"
+  A.du.  = "dual number"
 }
 
 /*

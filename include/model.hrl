@@ -1,6 +1,6 @@
 %% @doc Generic dynamically described grammatical model.
 %% @end
-%% @author Arseniy Fedorov <fedoarsen@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -ifndef (__MODEL_HRL__).
@@ -57,9 +57,10 @@
                    direction  :: direction_t (),
                    filters    :: list (filter_t ()) }).
 
--record (guard, { instance  :: match_instance_t (),
-                  entity    :: string (),
-                  property  :: string () }).
+-record (guard, { instance   :: match_instance_t (),
+                  entity     :: string (),
+                  property   :: string (),
+                  negotiated :: boolean () }).
 
 %
 % vocabular storage

@@ -1,6 +1,6 @@
 %% @doc Generic dynamically described grammatical model.
 %% @end
-%% @author Arseniy Fedorov <fedoarsen@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -module (model).
@@ -12,13 +12,12 @@
           start_link/0,
           dump/1,
           % payload
-          create_entity/2,
           create_entity/3,
           create_property/2,
           create_property/3,
           create_rule/5,
           create_regexp/6,
-          create_guard/5,
+          create_guard/6,
           create_stem/2,
           create_characteristic/3,
           delete_entities/1,
@@ -76,9 +75,6 @@ dump (Target) ->
 % setters
 %
 
-create_entity (Entity, Type) ->
-  create_entity (Entity, Type, []).
-
 create_entity (Entity, Type, Tag) ->
   Key = Entity,
   Object = #entity { name = Entity,
@@ -111,9 +107,13 @@ create_regexp (Match, OrdinalX, OrdinalY, Expression, Filters, Direction)
                      direction  = Direction },
   gen_server:cast (?MODULE, { rule, create, Key, Object }).
 
-create_guard (Match, OrdinalX, OrdinalY, Entity, Property) ->
+create_guard (Match, OrdinalX, OrdinalY, Entity, Property, Negotiated)
+  when is_boolean (Negotiated) ->
   Key = { Match, OrdinalX, OrdinalY },
-  Object = #guard { instance = Key, entity = Entity, property = Property },
+  Object = #guard { instance   = Key,
+                    entity     = Entity,
+                    property   = Property,
+                    negotiated = Negotiated },
   gen_server:cast (?MODULE, { rule, create, Key, Object }).
 
 create_stem (Vocabulary, Stem) ->
@@ -196,8 +196,12 @@ get_subrules (Match) ->
   lists:map (Fun, lists:sort (Sort, OrdinalsY)).
 
 get_guards (Match, OrdinalY) ->
-  Mask = #guard { instance = { Match, '_', OrdinalY }, entity = '_', property = '$1' },
-  gen_server:call (?MODULE, { rule, select, Mask, '$1' }).
+  Mask = #guard { instance   = { Match, '_', OrdinalY },
+                  entity     = '_',
+                  property   = '$1',
+                  negotiated = '$2' },
+  Guards = gen_server:call (?MODULE, { rule, select, Mask, [ '$1', '$2' ] }),
+  lists:map (fun list_to_tuple/1, Guards).
 
 get_stems () ->
   Mask = #stem { stem = '$1', vocabulary = '_' },
@@ -209,7 +213,8 @@ get_vocabularies (Stem) ->
 
 get_characteristics (Vocabulary, Stem) ->
   Mask = #characteristic { instance = { Stem, '$1' }, vocabulary = Vocabulary },
-  gen_server:call (?MODULE, { voc, select, Mask, '$1' }).
+  Characteristics = gen_server:call (?MODULE, { voc, select, Mask, [ '$1', false ] }),
+  lists:map (fun list_to_tuple/1, Characteristics).
 
 get_entity (Name) ->
   Mask = #entity { name = Name, type = '_', tag = '_' },
@@ -359,10 +364,10 @@ handle_cast ({ ensure, Name, Value, Condition }, State) ->
       false -> dict:store (Name, [ Value ], Dict1);
       true  ->        
         Values = dict:fetch (Name, Dict1),
-        case lists:all (Condition, Values) of
+        case lists:all (Condition, [ Value | Values ]) of
           true  -> dict:store (Name, [ Value | Values ], Dict1);
           false ->
-            Format = "insurance of ~p failed cause of ~p incompatible with ~p",
+            Format = "insurance of '~p' failed cause of '~p' incompatible with '~p'",
             debug:error (?MODULE, Format, [ Name, Value, Values ]),
             dispatcher:fatal_error (),
             Dict1

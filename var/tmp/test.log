@@ -1,3 +1,27 @@
 *** QUENYA TEST *** 
-AL -l -d ./tests.qu -i test.in.txt -o test.out.txt
-AL -l -d ./tests.qu -i test.in.txt -o test.out.txt
+ 
+Arda lexical compiler 1.0. 
+  Calling format: 
+  $ al [-a] 
+  $ al [-l] [-v] [-m] [-d <path>] -i <file> -o <file> 
+    -a (about)   - author, license, products links.
+    -l (lucky)   - pick random variants for ambiguities.
+    -v (verbose) - include words' additional attributes.
+    -m (minimal) - exclude attributes' names'.
+    -s (short)   - brief acc oriented format.
+    -i (input)   - input file for compilation.
+    -o (output)  - output file after compilation.
+    -d (dir)     - additional directory prefix
+                   appending to the 'src' and 'dst'
+                   directories respectively
+                   (see al.app file).
+
+Arda lexical compiler 1.0. 
+  Made by Borezkiy Arseniy Petrovich, 2016. 
+  Redistributable under Lesser General Public License. 
+  Author links: 
+    email  : apborezkiy1990@gmail.com
+    vk.com : Elen Evenstar 
+    hh.ru  : Borezkiy Arseniy Petrovich, Ufa, 04.10.1990 
+
+AL -m -s -d ./tests.qu -i test.in.txt -o test.out.txt

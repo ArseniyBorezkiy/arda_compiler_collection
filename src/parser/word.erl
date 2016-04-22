@@ -1,5 +1,5 @@
 %% Word matcher.
-%% @author Arseniy Fedorov <fedoarsen@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -module (word).
@@ -126,7 +126,7 @@ horizontal ([ Rule | Tail ], Guards, Word, Table, OID1)
       end;
     Subrules ->
       % match subrules
-      detail (OID2, " : rule: '~s', word: '~s' | ~p", [ Match, Word, Guards ]),
+      detail (OID2, " : rule: '~s', word: '~s' | ~s", [ Match, Word, format_guards (Guards) ]),
       Vertical =
         fun (Horizontal, Ordinal) ->
           Subguards  = model:get_guards (Match, Ordinal),
@@ -145,14 +145,18 @@ horizontal ([ Rule | Tail ], Guards, Word, Table, OID1)
 
 is_conflict (Guards1, Guards2) ->
   Fun2 =
-    fun (Guard2) ->
+    fun ({ Guard2, Negotiated2 }) ->
       Fun1 =
         fun
-          (Guard1) when Guard1 =/= Guard2 ->
+          ({ Guard1, Negotiated1 }) when Guard1 =/= Guard2 ->
             Entity1 = model:get_entity_name (Guard1),
             Entity2 = model:get_entity_name (Guard2),
-            Entity1 =:= Entity2;
-          (_) -> false
+            case Entity1 =/= Entity2 of
+              true  -> false;
+              false -> Negotiated1 =:= Negotiated2
+            end;
+          ({ _Guard2, Negotiated1 }) when Negotiated1 =/= Negotiated2 -> true;
+          ({ _Guard2, _Negotiated2 }) -> false
         end,
       lists:any (Fun1, Guards1)
     end,
@@ -169,7 +173,7 @@ which_class (Guards) ->
 
 do_which_class ([], undefined) -> [];
 do_which_class ([], Classes) -> sets:to_list (Classes);
-do_which_class ([ Guard | Tail ], Classes1) ->
+do_which_class ([ { Guard, _Negotiated } | Tail ], Classes1) ->
   Attribute = model:get_entity_name (Guard),
   Filtermap =
     fun
@@ -213,8 +217,8 @@ dump_detail (Word, Table) ->
                         word_out = WO,
                         value    = V,
                         guards   = GS }) ->
-            Format = "~s : ~s = ~s; ~s -> ~s | ~p",
-            Args   = [ format_oid (OID), M, V, WI, WO, GS ],
+            Format = "~s : ~s = ~s; ~s -> ~s | ~s",
+            Args   = [ format_oid (OID), M, V, WI, WO, format_guards (GS) ],
             debug:detail (?MODULE, Format, Args)
         end,
       lists:foreach (Fun, Entries)
@@ -238,8 +242,8 @@ dump_words (Word, Table) ->
     _  ->
       Fun =
         fun (#word { oid = OID, guards = Guards, route = Route, stem = Stem, class = Class }) ->
-            Format = "~s (~s) : ~s | ~p",
-            Args   = [ format_oid (OID), Class, Stem, Guards ],
+            Format = "~s (~s) : ~s | ~s",
+            Args   = [ format_oid (OID), Class, Stem, format_guards (Guards) ],
             debug:detail (?MODULE, Format, Args),
             PrintRoute =
               fun ({ Match, Value }) ->
@@ -261,6 +265,16 @@ format_oid (OID) ->
 do_format_oid ([], Acc) -> Acc;
 do_format_oid ([ Ordinal | OID ], Acc) ->
   do_format_oid (OID, integer_to_list (Ordinal) ++ "." ++ Acc).
+
+format_guards (Guards) ->
+  do_format_guards (Guards, "").
+
+do_format_guards ([], Acc) -> Acc;
+do_format_guards ([ { Guard, Negotiate } | Tail ], Acc) ->
+  case Negotiate of
+    false -> do_format_guards (Tail, " " ++ Guard ++ Acc);
+    true  -> do_format_guards (Tail, " ~" ++ Guard ++ Acc)
+  end.
 
 get_route (OID, Table) ->
   do_get_route (OID, Table, []).

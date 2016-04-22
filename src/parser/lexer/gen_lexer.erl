@@ -1,6 +1,6 @@
 %% @doc Generic lexical analyzer.
 %% @end
-%% @author Arseniy Fedorov <fedoarsen@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -module (gen_lexer).

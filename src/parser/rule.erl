@@ -1,5 +1,5 @@
 %% Match expression analyzer.
-%% @author Arseniy Fedorov <fedoarsen@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -module (rule).
@@ -94,7 +94,11 @@ do_parse_forward ([ $- ], Mode, Acc) ->
 do_parse_forward ([ $- | Tail ], _Mode, Acc) ->
   do_parse_forward (Tail, hold, Acc);
 
-do_parse_forward ([ Ch | Tail ], rift = Mode, Acc)
+do_parse_forward ([ $~, Ch | Tail ], Mode, Acc) ->
+  Nequ = fun (Ch1, Ch2) -> Ch1 =/= Ch2 end,
+  do_parse_forward ([ { Nequ }, Ch | Tail ], Mode, Acc);
+  
+do_parse_forward ([ { Cmp }, Ch | Tail ], rift = Mode, Acc)
   when Ch >= $a, Ch =< $z ->
   % { cW, V, P } -> { W, Vc, P }
   Fun =
@@ -102,39 +106,51 @@ do_parse_forward ([ Ch | Tail ], rift = Mode, Acc)
       Wb = string:substr (W, 1, P - 1),
       Wp = string:substr (W, P),
       case Wp of
-        [ Ch | We ] -> { Wb ++ We, V ++ [ Ch ], P };
+        [ Ch0 | We ] ->
+          case Cmp (Ch, Ch0) of
+            true  -> { Wb ++ We, V ++ [ Ch0 ], P };
+            false -> false
+          end;
         _ -> false
       end
     end,
   do_parse_forward (Tail, Mode, [ Fun | Acc ]);
 
-do_parse_forward ([ Ch | Tail ], hold = Mode, Acc)
+do_parse_forward ([ { Cmp }, Ch | Tail ], hold = Mode, Acc)
   when Ch >= $a, Ch =< $z ->
   % { cW, V, P } -> { cW, Vc, P + 1 }
   Fun =
     fun (W, V, P) ->
       Wp = string:substr (W, P),
       case Wp of
-        [ Ch | _ ] -> { W, V ++ [ Ch ], P + 1 };
+        [ Ch0 | _ ] ->
+          case Cmp (Ch, Ch0) of
+            true  -> { W, V ++ [ Ch0 ], P + 1 };
+            false -> false
+          end;
         _ -> false
       end
     end,
   do_parse_forward (Tail, Mode, [ Fun | Acc ]);
 
-do_parse_forward ([ Ch | Tail ], skip = Mode, Acc)
+do_parse_forward ([ { Cmp }, Ch | Tail ], skip = Mode, Acc)
   when Ch >= $a, Ch =< $z ->
   % { cW, V, P } -> { cW, V, P + 1 }
   Fun =
     fun (W, V, P) ->
       Wp = string:substr (W, P),
       case Wp of
-        [ Ch | _ ] -> { W, V, P + 1 };
+        [ Ch0 | _ ] ->
+          case Cmp (Ch, Ch0) of
+            true  -> { W, V, P + 1 };
+            false -> false
+          end;
         _ -> false
       end
     end,
   do_parse_forward (Tail, Mode, [ Fun | Acc ]);
 
-do_parse_forward (Rule, Mode, Acc)
+do_parse_forward ([ { Cmp } | Rule ], Mode, Acc)
   when Mode == skip; Mode == hold; Mode == rift ->
   % { ?X, Y, P } -> { ?X, Y, P + length (?) }
   % { ?X, Y, P } -> { ?X, Y?, P + length (?) }
@@ -147,9 +163,17 @@ do_parse_forward (Rule, Mode, Acc)
           Wp = string:substr (W, P),
           Filter =
             fun (#property { name = Ph }) ->
-              case string:str (Wp, Ph) of
-                1 -> { true, Ph };
-                _ -> false
+              case Cmp (true, true) of
+                true ->
+                  case string:str (Wp, Ph) of
+                    1 -> { true, Ph };
+                    _ -> false
+                  end;
+                false ->
+                  case string:str (Wp, Ph) of
+                    1 -> false;
+                    _ -> { true, Ph }
+                  end
               end
             end,
           Sort = fun (Ph1, Ph2) -> length (Ph1) > length (Ph2) end,
@@ -168,39 +192,49 @@ do_parse_forward (Rule, Mode, Acc)
         end,
       do_parse_forward (lists:nthtail (WildcardLen, Rule), Mode, [ Fun | Acc ]);
     { { ?ET_MUTATION, Mutation, WildcardLen }, Genealogist } ->
-      Maps = model:get_recursive_properties ([ Mutation ], Genealogist), 
-      Fun =
-        fun (W, V, P) ->
-          Filter =
-            fun
-              (#property { name = ?UPREFIX (Prefix, PhSrc), value = PhDst })
-                when Prefix == Mutation ->
-                case string:str (W, PhSrc) of
-                  1 -> { true, { PhSrc, PhDst } };
-                  _ -> false
-                end;
-               (_) -> false
-            end,
-          Sort = fun ({ Ph1, _ }, { Ph2, _ }) -> length (Ph1) > length (Ph2) end,
-          case lists:sort (Sort, lists:filtermap (Filter, Maps)) of
-            [] -> false;
-            [ { PhSrc, PhDst } | _ ] ->
-              PhSrcLen = length (PhSrc),
-              PhDstLen = length (PhDst),
-              Wt = lists:nthtail (PhSrcLen, W),
-              case Mode of
-                skip -> { Wt, V, P - PhSrcLen };
-                hold -> { PhDst ++ Wt, V ++ PhDst, P - PhSrcLen + PhDstLen };
-                rift -> { Wt, V ++ PhDst, P - PhSrcLen }
+      case Cmp (true, true) of
+        true ->
+          Maps = model:get_recursive_properties ([ Mutation ], Genealogist), 
+          Fun =
+            fun (W, V, P) ->
+              Filter =
+                fun
+                  (#property { name = ?UPREFIX (Prefix, PhSrc), value = PhDst })
+                    when Prefix == Mutation ->
+                    case string:str (W, PhSrc) of
+                      1 -> { true, { PhSrc, PhDst } };
+                      _ -> false
+                    end;
+                   (_) -> false
+                end,
+              Sort = fun ({ Ph1, _ }, { Ph2, _ }) -> length (Ph1) > length (Ph2) end,
+              case lists:sort (Sort, lists:filtermap (Filter, Maps)) of
+                [] -> false;
+                [ { PhSrc, PhDst } | _ ] ->
+                  PhSrcLen = length (PhSrc),
+                  PhDstLen = length (PhDst),
+                  Wt = lists:nthtail (PhSrcLen, W),
+                  case Mode of
+                    skip -> { Wt, V, P - PhSrcLen };
+                    hold -> { PhDst ++ Wt, V ++ PhDst, P - PhSrcLen + PhDstLen };
+                    rift -> { Wt, V ++ PhDst, P - PhSrcLen }
+                  end
               end
-          end
-        end,
-      do_parse_forward (lists:nthtail (WildcardLen, Rule), Mode, [ Fun | Acc ])
+            end,
+          do_parse_forward (lists:nthtail (WildcardLen, Rule), Mode, [ Fun | Acc ]);
+        false ->
+          debug:warning (?MODULE, "mutation negotiations unsupported in subrule ~p", [ Rule ]),
+          error
+      end
   end;
 
-do_parse_forward (Rule, none, _Acc) ->
-  debug:warning (?MODULE, "expected mode for forward rule ~p", [ Rule ]),
-  error.
+do_parse_forward ([ { _ } | Rule ], none, _Acc) ->
+  debug:warning (?MODULE, "expected mode for forward subrule ~p", [ Rule ]),
+  error;
+
+do_parse_forward ([ Ch | Tail ], Mode, Acc) ->
+  Equ = fun (Ch1, Ch2) -> Ch1 =:= Ch2 end,
+  do_parse_forward ([ { Equ }, Ch | Tail ], Mode, Acc).
 
 %
 % backward rule parser
@@ -246,7 +280,11 @@ do_parse_backward ([ $- ], Mode, Acc) ->
 do_parse_backward ([ $- | Tail ], _Mode, Acc) ->
   do_parse_backward (Tail, hold, Acc);
 
-do_parse_backward ([ Ch | Tail ], rift = Mode, Acc)
+do_parse_backward ([ $~, Ch | Tail ], Mode, Acc) ->
+  Nequ = fun (Ch1, Ch2) -> Ch1 =/= Ch2 end,
+  do_parse_backward ([ { Nequ }, Ch | Tail ], Mode, Acc);
+
+do_parse_backward ([ { Cmp }, Ch | Tail ], rift = Mode, Acc)
   when Ch >= $a, Ch =< $z ->
   % { Wc, V, P } -> { W, cV, P }
   Fun =
@@ -254,42 +292,42 @@ do_parse_backward ([ Ch | Tail ], rift = Mode, Acc)
       Pn = length (W) - P + 1,
       Wb = string:substr (W, Pn + 1),
       Wp = string:substr (W, 1, Pn),      
-      case lists:last (Wp) == Ch of
+      case Cmp (lists:last (Wp), Ch) of
         true -> { lists:droplast (Wp) ++ Wb, [ Ch | V ], P };
         _ -> false
       end
     end,
   do_parse_backward (Tail, Mode, [ Fun | Acc ]);
 
-do_parse_backward ([ Ch | Tail ], hold = Mode, Acc)
+do_parse_backward ([ { Cmp }, Ch | Tail ], hold = Mode, Acc)
   when Ch >= $a, Ch =< $z ->
   % { Wc, V, P } -> { Wc, cV, P + 1 }
   Fun =
     fun (W, V, P) ->
       Pn = length (W) - P + 1,
       Wp = string:substr (W, 1, Pn),      
-      case lists:last (Wp) == Ch of
+      case Cmp (lists:last (Wp), Ch) of
         true -> { W, [ Ch | V ], P + 1 };
         _ -> false
       end
     end,
   do_parse_backward (Tail, Mode, [ Fun | Acc ]);
 
-do_parse_backward ([ Ch | Tail ], skip = Mode, Acc)
+do_parse_backward ([ { Cmp }, Ch | Tail ], skip = Mode, Acc)
   when Ch >= $a, Ch =< $z ->
   % { Wc, V, P } -> { Wc, V, P + 1 }
   Fun =
     fun (W, V, P) ->
       Pn = length (W) - P + 1,
       Wp = string:substr (W, 1, Pn),
-      case lists:last (Wp) == Ch of
+      case Cmp (lists:last (Wp), Ch) of
         true -> { W, V, P + 1 };
         _ -> false
       end
     end,
   do_parse_backward (Tail, Mode, [ Fun | Acc ]);
 
-do_parse_backward (Rule, Mode, Acc)
+do_parse_backward ([ { Cmp } | Rule ], Mode, Acc)
   when Mode == skip; Mode == hold; Mode == rift ->
   % { X?, Y, P } -> { X?, Y, P + length (?) }
   % { X?, Y, P } -> { X?, ?Y, P + length (?) }
@@ -304,9 +342,17 @@ do_parse_backward (Rule, Mode, Acc)
           Filter =
             fun (#property { name = Ph }) ->
               Pos = length (Wp) - length (Ph) + 1,
-              case string:rstr (Wp, Ph) of
-                Pos -> { true, Ph };
-                _ -> false
+              case Cmp (true, true) of
+                true ->
+                  case string:rstr (Wp, Ph) of
+                    Pos -> { true, Ph };
+                    _ -> false
+                  end;
+                false ->
+                  case string:rstr (Wp, Ph) of
+                    Pos -> false;
+                    _ -> { true, Ph }
+                  end
               end
             end,
           Sort = fun (Ph1, Ph2) -> length (Ph1) > length (Ph2) end,
@@ -325,40 +371,50 @@ do_parse_backward (Rule, Mode, Acc)
         end,
       do_parse_backward (lists:nthtail (WildcardLen, Rule), Mode, [ Fun | Acc ]);
     { { ?ET_MUTATION, Mutation, WildcardLen }, Genealogist } ->
-      Maps = model:get_recursive_properties ([ Mutation ], Genealogist), 
-      Fun =
-        fun (W, V, P) ->
-          Filter =
-            fun
-              (#property { name = ?UPREFIX (Prefix, PhSrc), value = PhDst })
-                when Prefix == Mutation ->                   
-                Pos = length (W) - length (PhSrc) + 1,
-                case string:rstr (W, PhSrc) of
-                  Pos -> { true, { PhSrc, PhDst } };
-                  _ -> false
-                end;
-              (_) -> false
-            end,
-          Sort = fun ({ Ph1, _ }, { Ph2, _ }) -> length (Ph1) > length (Ph2) end,
-          case lists:sort (Sort, lists:filtermap (Filter, Maps)) of
-            [] -> false;
-            [ { PhSrc, PhDst } | _ ] ->              
-              PhSrcLen = length (PhSrc),
-              PhDstLen = length (PhDst),
-              Wt = lists:sublist (W, length (W) - PhSrcLen),
-              case Mode of
-                skip -> { Wt, V, P - PhSrcLen };
-                hold -> { Wt ++ PhDst, PhDst ++ V, P - PhSrcLen + PhDstLen };
-                rift -> { Wt, PhDst ++ V, P - PhSrcLen }
+      case Cmp (true, true) of
+        true ->
+          Maps = model:get_recursive_properties ([ Mutation ], Genealogist), 
+          Fun =
+            fun (W, V, P) ->
+              Filter =
+                fun
+                  (#property { name = ?UPREFIX (Prefix, PhSrc), value = PhDst })
+                    when Prefix == Mutation ->                   
+                    Pos = length (W) - length (PhSrc) + 1,
+                    case string:rstr (W, PhSrc) of
+                      Pos -> { true, { PhSrc, PhDst } };
+                      _ -> false
+                    end;
+                  (_) -> false
+                end,
+              Sort = fun ({ Ph1, _ }, { Ph2, _ }) -> length (Ph1) > length (Ph2) end,
+              case lists:sort (Sort, lists:filtermap (Filter, Maps)) of
+                [] -> false;
+                [ { PhSrc, PhDst } | _ ] ->              
+                  PhSrcLen = length (PhSrc),
+                  PhDstLen = length (PhDst),
+                  Wt = lists:sublist (W, length (W) - PhSrcLen),
+                  case Mode of
+                    skip -> { Wt, V, P - PhSrcLen };
+                    hold -> { Wt ++ PhDst, PhDst ++ V, P - PhSrcLen + PhDstLen };
+                    rift -> { Wt, PhDst ++ V, P - PhSrcLen }
+                  end
               end
-          end
-        end,
-      do_parse_backward (lists:nthtail (WildcardLen, Rule), Mode, [ Fun | Acc ])
+            end,
+          do_parse_backward (lists:nthtail (WildcardLen, Rule), Mode, [ Fun | Acc ]);
+        false ->
+          debug:warning (?MODULE, "mutation negotiations unsupported in subrule ~p", [ Rule ]),
+          error
+      end
   end;
 
-do_parse_backward (Rule, none, _Acc) ->
-  debug:warning (?MODULE, "expected mode for backward rule ~p", [ Rule ]),
-  error.
+do_parse_backward ([ { _ } | Rule ], none, _Acc) ->
+  debug:warning (?MODULE, "expected mode for backward subrule ~p", [ Rule ]),
+  error;
+
+do_parse_backward ([ Ch | Tail ], Mode, Acc) ->
+  Equ = fun (Ch1, Ch2) -> Ch1 =:= Ch2 end,
+  do_parse_backward ([ { Equ }, Ch | Tail ], Mode, Acc).
 
 % =============================================================================
 % AUXILIARY FUNCTIONS

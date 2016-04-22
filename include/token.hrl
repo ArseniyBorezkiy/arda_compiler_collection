@@ -1,6 +1,6 @@
 %% @doc Token types.
 %% @end
-%% @author Arseniy Fedorov <fedoarsen@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -ifndef (__TOKEN_HRL__).

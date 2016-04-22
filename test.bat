@@ -10,5 +10,8 @@ call %ROOT%\priv\common.bat
 TIMEOUT /T 3 > nul
 
 echo *** QUENYA TEST *** > %TEST_LOG%
-%AL% -l -d %QU_DIR% -i test.in.txt -o test.out.txt >> %TEST_LOG%
-%AL% -l -d %QU_DIR% -i test.in.txt -o test.out.txt >> %TEST_LOG%
+echo. >> %TEST_LOG%
+
+%AL% >> %TEST_LOG%
+%AL% -a >> %TEST_LOG%
+%AL% -m -s -d %QU_DIR% -i test.in.txt -o test.out.txt >> %TEST_LOG%

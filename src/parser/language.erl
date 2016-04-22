@@ -1,5 +1,5 @@
 %% Grammar reference parser.
-%% @author Arseniy Fedorov <fedoarsen@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -module (language).
@@ -36,8 +36,10 @@ parse () ->
   lexer:load_token (" ",  ?TT_SEPARATOR),
   lexer:load_token ("\n", ?TT_BREAK),
   lexer:load_token (".language",   ?TT_SECTION),
+  lexer:load_token (".compiler",   ?TT_SECTION),
   lexer:load_token (".class",      ?TT_SECTION),
   lexer:load_token (".attribute",  ?TT_SECTION),
+  lexer:load_token (".verbose",    ?TT_SECTION),
   lexer:load_token (".match",      ?TT_SECTION),
   lexer:load_token (".alphabet",   ?TT_SECTION),
   lexer:load_token (".wildcard",   ?TT_SECTION),
@@ -55,12 +57,14 @@ parse () ->
   lexer:load_token ("}",  ?TT_CONTENT_END),
   lexer:load_token ("=",  ?TT_ASSIGNMENT),
   lexer:load_token ("|",  ?TT_GUARD),
+  lexer:load_token ("~",  ?TT_GUARD),
   lexer:load_token ("/*", ?TT_COMMENT_BEGIN),
   lexer:load_token ("*/", ?TT_COMMENT_END),
   % setting up process dictionary
   erlang:put (comment, 0),
   erlang:put (state, main),
   erlang:put (global, true),
+  model:ensure (version, { ?BC_VERSION, ?FC_VERSION }),
   % start parsing
   loop (main).
 
@@ -82,18 +86,29 @@ loop (State) ->
 %
 
 main (?TT_SECTION, ".attribute") ->
-  % '.attribute' name '{'
+  % '.attribute' name ordinal [ '.verbose' ] '{'
   Name = lexer:next_token (?TT_DEFAULT),
-  model:create_entity (Name, ?ET_ATTRIBUTE),  
   lexer:load_token (Name, ?TT_ATTRIBUTE),
-  lexer:next_token (?TT_CONTENT_BEGIN),
+  Position = lexer:next_token (?TT_DEFAULT),
+  Ordinal  = debug:parse_int (Position),
+  Verbose  =
+    case lexer:next_token () of
+      { ?TT_SECTION, ".verbose" } ->
+        lexer:next_token (?TT_CONTENT_BEGIN),
+        true;
+      { ?TT_CONTENT_BEGIN, _ } -> false
+    end,
+  Tag =
+    [ proplists:property (verbose, Verbose),
+      proplists:property (ordinal, Ordinal) ],
+  model:create_entity (Name, ?ET_ATTRIBUTE, Tag),
   erlang:put (base, Name),
   attribute;
 
 main (?TT_SECTION, ".class") ->
   % '.class' name '{'
   Name = lexer:next_token (?TT_DEFAULT),
-  model:create_entity (Name, ?ET_CLASS),
+  model:create_entity (Name, ?ET_CLASS, []),
   lexer:load_token (Name, ?TT_CLASS),
   lexer:next_token (?TT_CONTENT_BEGIN),
   erlang:put (base, Name),
@@ -201,7 +216,7 @@ main (?TT_SECTION, ".vocabulary") ->
   % '.vocabulary' name '{'
   Name = lexer:next_token (?TT_DEFAULT),
   lexer:load_token (Name, ?TT_VOCABULARY),
-  model:create_entity (Name, ?ET_VOCABULARY),
+  model:create_entity (Name, ?ET_VOCABULARY, []),
   lexer:next_token (?TT_CONTENT_BEGIN),
   erlang:put (base, Name),
   vocabular_entry;
@@ -211,11 +226,21 @@ main (?TT_SECTION, ".language") ->
   Name       = lexer:next_token (?TT_DEFAULT),
   MinVersion = lexer:next_token (?TT_DEFAULT),
   MaxVersion = lexer:next_token (?TT_DEFAULT),
-  Min        = string:to_integer (MinVersion),
-  Max        = string:to_integer (MaxVersion),
-  model:ensure (language, Name),
-  model:ensure ({ version, min }, Min, fun (V) -> V >= Min end),
-  model:ensure ({ version, max }, Max, fun (V) -> V =< Max end),
+  Min        = debug:parse_int (MinVersion),
+  Max        = debug:parse_int (MaxVersion),
+  model:ensure (language, Name, fun (N) -> N =:= Name andalso Min =< Max end),
+  model:ensure ({ version, min }, Min, fun (V) -> V =< Max end),
+  model:ensure ({ version, max }, Max, fun (V) -> V >= Min end),
+  main;
+
+main (?TT_SECTION, ".compiler") ->
+  % '.compiler' bc_version fc_version
+  BcVersion = lexer:next_token (?TT_DEFAULT),
+  FcVersion = lexer:next_token (?TT_DEFAULT),
+  Bc        = debug:parse_int (BcVersion),
+  Fc        = debug:parse_int (FcVersion),
+  Fun       = fun ({ Bc_, Fc_ }) -> Bc_ == ?BC_VERSION andalso Fc_ =< ?FC_VERSION end,
+  model:ensure (version, { Bc, Fc }, Fun),
   main;
 
 main (?TT_SECTION, ".target") ->
@@ -357,6 +382,7 @@ match_rule (?TT_DEFAULT, Expression) ->
 match_rule (?TT_GUARD, "|") ->
   % '|'
   erlang:put (rule_x, 1),
+  erlang:put (negotiated, false),
   match_guard;
 
 match_rule (Type, Token) -> default (Type, Token, match_rule).
@@ -367,14 +393,20 @@ match_guard (?TT_BREAK, "\n") ->
   erlang:put (rule_y, OrdinalY + 1),
   match_rule;
 
+match_guard (?TT_GUARD, "~") ->
+  erlang:put (negotiated, true),
+  match_guard;
+
 match_guard (?TT_PROPERTY, Property) ->
   % condition
-  Match    = erlang:get (base),
-  OrdinalX = erlang:get (rule_x),
-  OrdinalY = erlang:get (rule_y),
-  Entity   = model:get_entity_name (Property),
-  model:create_guard (Match, OrdinalX, OrdinalY, Entity, Property),
+  Match      = erlang:get (base),
+  OrdinalX   = erlang:get (rule_x),
+  OrdinalY   = erlang:get (rule_y),
+  Entity     = model:get_entity_name (Property),
+  Negotiated = erlang:get (negotiated),
+  model:create_guard (Match, OrdinalX, OrdinalY, Entity, Property, Negotiated),
   erlang:put (rule_x, OrdinalX + 1),
+  erlang:put (negotiated, false),
   match_guard;
 
 match_guard (Type, Token) -> default (Type, Token, match_guard).
