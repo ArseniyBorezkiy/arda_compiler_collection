@@ -8,7 +8,8 @@
 -export ([
           parse_forward/1,
           parse_backward/1,
-          match/2
+          match/2,
+          get_starts_with/1
         ]).
 
 % HEADERS
@@ -40,7 +41,7 @@ match (Word, Filters) ->
 % =============================================================================
 
 do_match ([], Word, _Pos, Acc) -> { true, Word, Acc };
-do_match ([ Filter | Tail ], Word1, Pos1, Acc1) ->
+do_match ([ Filter | Tail ], Word1, Pos1, Acc1) ->  
   case Pos1 > length (Word1) of
     true  -> false;
     false ->
@@ -65,9 +66,7 @@ do_parse_forward ([ $= ], Mode, Acc) ->
   do_parse_forward ([], Mode, [ Fun | Acc ]);
 
 do_parse_forward ([ $= | Tail ], _Mode, Acc) ->
-  % { W, V, P } -> { W, V, P }
-  Fun = fun (W, V, P) -> { W, V, P } end,
-  do_parse_forward (Tail, skip, [ Fun | Acc ]);
+  do_parse_forward (Tail, skip, Acc);
 
 do_parse_forward ([ $+ ], Mode, Acc) ->
   % { W, V, P } -> { W\Wp, VWp, End }
@@ -181,7 +180,8 @@ do_parse_forward ([ { Cmp } | Rule ], Mode, Acc)
             [] -> false;
             [ Ph | _ ] ->
               case Mode of
-                skip -> { W, V, P + length (Ph) };
+                skip ->
+                  { W, V, P + length (Ph) };
                 hold -> { W, V ++ Ph, P + length (Ph) };
                 rift ->
                   Wb = string:substr (W, 1, P - 1),
@@ -225,7 +225,10 @@ do_parse_forward ([ { Cmp } | Rule ], Mode, Acc)
         false ->
           debug:warning (?MODULE, "mutation negotiations unsupported in subrule ~p", [ Rule ]),
           error
-      end
+      end;
+    error ->
+      debug:warning (?MODULE, "unknown wildcard in rule '~p'", [ Rule ]),
+      error
   end;
 
 do_parse_forward ([ { _ } | Rule ], none, _Acc) ->
@@ -249,9 +252,7 @@ do_parse_backward ([ $= ], Mode, Acc) ->
   do_parse_backward ([], Mode, [ Fun | Acc ]);
 
 do_parse_backward ([ $= | Tail ], _Mode, Acc) ->
-  % { W, V, P } -> { W, V, P }
-  Fun = fun (W, V, P) -> { W, V, P } end,
-  do_parse_backward (Tail, skip, [ Fun | Acc ]);
+  do_parse_backward (Tail, skip, Acc);
 
 do_parse_backward ([ $+ ], Mode, Acc) ->
   % { W, V, P } -> { W\Wp, WpV, End }
@@ -345,12 +346,12 @@ do_parse_backward ([ { Cmp } | Rule ], Mode, Acc)
               case Cmp (true, true) of
                 true ->
                   case string:rstr (Wp, Ph) of
-                    Pos -> { true, Ph };
+                    Pos when Pos > 0 -> { true, Ph };
                     _ -> false
                   end;
                 false ->
                   case string:rstr (Wp, Ph) of
-                    Pos -> false;
+                    Pos when Pos > 0 -> false;
                     _ -> { true, Ph }
                   end
               end
@@ -363,7 +364,7 @@ do_parse_backward ([ { Cmp } | Rule ], Mode, Acc)
                 skip -> { W, V, P + length (Ph) };
                 hold -> { W, Ph ++ V, P + length (Ph) };
                 rift ->
-                  Wb = string:substr (W, Pn + 1),
+                  Wb = string:substr (W, Pn + 1),                  
                   We = lists:sublist (Wp, length (Wp) - length (Ph)),
                   { We ++ Wb, Ph ++ V, P }
               end
@@ -382,7 +383,7 @@ do_parse_backward ([ { Cmp } | Rule ], Mode, Acc)
                     when Prefix == Mutation ->                   
                     Pos = length (W) - length (PhSrc) + 1,
                     case string:rstr (W, PhSrc) of
-                      Pos -> { true, { PhSrc, PhDst } };
+                      Pos when Pos > 0 -> { true, { PhSrc, PhDst } };
                       _ -> false
                     end;
                   (_) -> false
@@ -405,7 +406,10 @@ do_parse_backward ([ { Cmp } | Rule ], Mode, Acc)
         false ->
           debug:warning (?MODULE, "mutation negotiations unsupported in subrule ~p", [ Rule ]),
           error
-      end
+      end;
+    error ->
+      debug:warning (?MODULE, "unknown wildcard in rule '~p'", [ Rule ]),
+      error
   end;
 
 do_parse_backward ([ { _ } | Rule ], none, _Acc) ->

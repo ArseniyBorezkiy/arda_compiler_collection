@@ -1,0 +1,132 @@
+/*
+ * Template for your own grammar reference.
+ * Your full name here.
+ *
+ * This is the alphabet definition file.
+ * Should be included at first.
+ */
+ 
+.global /* ect.tpl */
+
+/*
+ * '.global' directive specifies the global namespace for wildcards.
+ * Thus wildcards defined in this file could be used from others.
+ * (see wildcards specification)
+ */
+ 
+.language my 1 100 /* see 'lang.tpl.txt' file for details */
+.compiler 1 0      /* see 'lang.tpl.txt' file for details */
+
+/* ========================
+ * YOUR ALPHABET DEFINITION
+ * ======================== */
+ 
+/*
+ * vowels
+ */
+
+.alphabet short_vowel {
+  a   = "vowel (a)"
+  o   = "vowel (o)"
+}
+
+.alphabet long_vowel {
+  aa  = "long vowel (a)"
+  oo  = "long vowel (o)"
+}
+
+.alphabet vowel .base short_vowel long_vowel { }
+
+/*
+ * consonants
+ */
+ 
+.alphabet consonant {
+  f   = "consonant f"
+  b   = "consonant b"
+  r   = "consonant r"
+}
+
+/*
+ * phonemes
+ */
+
+.alphabet phoneme .base vowel consonant { }
+ 
+/*
+ * The '.alphabet' section allows you to specify group of symbols that can
+ * have wildcard for rule matching expressions. Alphabets supports inheritance.
+ *
+ *   .alphabet <name> [ .base <alphabets> ] {
+ *     <letter> = <description>
+ *     ...
+ *   }
+ *
+ *  Where:
+ *    <name>        - Unique name of alphabet.
+ *    <alphabets>   - Sequence of the parents alphabets' names.
+ *    <letter>      - Arbitrary phoneme or adjacent phonemes transliteration.
+ *    <description> - Textual description of the 'letter'.
+ */
+
+/*
+ * global wildcards for alphabets
+ */
+
+.wildcard . phoneme
+.wildcard * vowel
+.wildcard # consonant
+.wildcard @ short_vowel
+
+/*
+ * This '.wildcard' section describes the aliases for the alphabets.
+ * Alphabetical wildcards could be used in matching regular expressions or
+ * in mutations (see next section).
+ *
+ *   .wildcard <name> <alphabet>
+ *
+ *   Where:
+ *     <name>     - Unique name of the wildcard.
+ *     <alphabet> - Target alphabet. If alphabet has parents, wildcard will
+ *                  match both for target aplhabet letters and it's parent
+ *                  alphabets letters recursively.
+ */
+ 
+.mutation longify_vowel {
+  a = aa
+  o = oo
+}
+
+.mutation change_vowel_to_a {
+  * = a
+}
+
+/*
+ * global wildcards for mutations
+ */
+ 
+.wildcard (a>aa,o>oo) longify_vowel
+.wildcard (*>a)       change_vowel_to_a
+
+/*
+ * Mutations are like functions applied to the left or right end of the
+ * matching subword withing the matching expression through the wildcards.
+ * Mutations also supports inheritance. If the rule containing matching
+ * expression with mutation wildcard it will be applied and modifies the
+ * internal matching subword copy.
+ *
+ *   .mutation <name> [ .base <mutations> ] {
+ *     <letter_src> = <letter_dst>
+ *     ...
+ *   }
+ *
+ *   Where:
+ *     <name>       - Unique mutation name.
+ *     <mutations>  - Sequence of the parent mutations' names.
+ *     <letter_src> - Known letter from any defined alphabet or alphabetical
+ *                    wildcard. It will be replaced by <letter_dst> in
+ *                    matching subword copy.
+ *     <letter_dst> - Known letter from any defined alphabet.
+ *
+ * (see 'adj.tpl.txt', 'noun.tpl.txt' and 'verb.tpl.txt' files for details)
+ */

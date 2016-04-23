@@ -2,11 +2,11 @@
 
 SET ROOT=%~dp0
 SET TEST_LOG=%ROOT%\var\tmp\test.log
-SET QU_DIR=./tests.qu
+SET QU_DIR=./tests.tpl
 
 call %ROOT%\priv\common.bat
 
-%ALS% -l al.log -d qu -r lang.qu.txt
+%ALS% -l al.log -d tpl -r lang.tpl.txt
 TIMEOUT /T 3 > nul
 
 echo *** QUENYA TEST *** > %TEST_LOG%

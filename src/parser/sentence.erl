@@ -114,7 +114,8 @@ do_format_long ([ #word { oid = OID, guards = Guards, route = Route, stem = Stem
               false -> debug:sprintf ("    ~s = ~s /* ~s */~n", [ Entity, Name, Value ])
             end
         end;
-      ({ _Name, true }, Acc0) -> Acc0
+      ({ _Name, true }, Acc0) -> Acc0;
+      ({ _Name, undefined }, Acc0) -> Acc0
     end,
   GetRoute =
     fun ({ Match, Value }, Acc0) ->
@@ -164,7 +165,8 @@ do_format_short ([ #word { guards = Guards, stem = Stem, class = Class } | Tail 
               false -> debug:sprintf ("    ~s = ~s~n", [ Entity, Name ])
             end
         end;
-      ({ _Name, true }, Acc0) -> Acc0
+      ({ _Name, true }, Acc0) -> Acc0;
+      ({ _Name, undefined }, Acc0) -> Acc0
     end,
   Sort =
     fun ({ Name1, _ }, { Name2, _ }) ->

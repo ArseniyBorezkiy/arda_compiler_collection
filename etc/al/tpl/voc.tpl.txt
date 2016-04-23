@@ -1,0 +1,55 @@
+/*
+ * Template for your own grammar reference.
+ * Your full name here.
+ *
+ * This is the vocabulary definition file.
+ */
+ 
+.global /* voc.tpl */    /* see 'etc.tpl.txt' for details */
+
+.language my 1 100 /* see 'lang.tpl.txt' file for details */
+.compiler 1 0      /* see 'lang.tpl.txt' file for details */
+
+/* ===============
+ * YOUR VOCABULARY
+ * =============== */
+ 
+/*
+ * adjectives
+ */
+ 
+.vocabulary voc_adjectives {
+  foo  adj. AD.V
+  bar  adj. AD.C
+}
+
+/*
+ * nouns
+ */
+ 
+.vocabulary voc_nouns {
+  fb  n.
+}
+
+/*
+ * verbs
+ */
+ 
+.vocabulary voc_verbs {
+  afoo  vb.
+  abaa  vb.
+}
+
+/*
+ * directive '.vocabulary' allows you to define dictionary.
+ *
+ *   .vocabulary <name> {
+ *     <stem> <guards>
+ *     ...
+ *   }
+ *
+ *   Where:
+ *     <name>   - Unique name of the vocabulary.
+ *     <stem>   - Word stem or root.
+ *     <guards> - Sequence of the attributes' members.
+ */

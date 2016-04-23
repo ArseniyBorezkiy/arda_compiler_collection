@@ -107,8 +107,7 @@ create_regexp (Match, OrdinalX, OrdinalY, Expression, Filters, Direction)
                      direction  = Direction },
   gen_server:cast (?MODULE, { rule, create, Key, Object }).
 
-create_guard (Match, OrdinalX, OrdinalY, Entity, Property, Negotiated)
-  when is_boolean (Negotiated) ->
+create_guard (Match, OrdinalX, OrdinalY, Entity, Property, Negotiated) ->
   Key = { Match, OrdinalX, OrdinalY },
   Object = #guard { instance   = Key,
                     entity     = Entity,

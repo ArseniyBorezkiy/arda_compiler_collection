@@ -1,0 +1,114 @@
+/*
+ * Template for your own grammar reference.
+ * Your full name here.
+ *
+ * This is the verb definition file.
+ */
+
+.module /* verb.tpl */
+
+/*
+ * '.module' directive defines local wildcard scope. Any wildcard defined in
+ * this section will be forgotten when next '.module' directive meets.
+ */
+ 
+.language my 1 100 /* see 'lang.tpl.txt' file for details */
+.compiler 1 0      /* see 'lang.tpl.txt' file for details */
+
+/* =====================
+ * VERB CLASS DEFINITION
+ * ===================== */
+ 
+/*
+ * attributes
+ */
+
+.attribute mvb_time 1 {
+  V.pr. = "present time"
+  V.p.  = "past time"
+}
+
+/*
+ * Here adjective attributes defined. We have alreafy consider '.attribute'
+ * directive in the 'lang.tpl.txt' file.
+ */
+ 
+/*
+ * class implementation
+ */
+ 
+.class verb {
+  pars_orationis
+  mvb_time
+}
+
+/*
+ * The classes are sets of the attributes.
+ * One attribute can be shared in many classes.
+ * But rule matching stops immediatelly if the not shared attributes
+ * from different classes meets or class ambiguity meets.
+ *
+ *   .class <name> {
+ *     <member>
+ *     ...
+ *   }
+ *
+ *   Where:
+ *     <name>   - Unique name of the class.
+ *     <member> - Attribute name.
+ */
+ 
+/*
+ * It's time to introduce your experimental 'foo - bar' language.
+ * The 'foo' - 'bar' language has only two verbs: 'afoo' and 'abaa'.
+ * Present time of the verb forms by shorthening of the last vowel.
+ * Past time forms by replacing of the first vowel 'a' to any other vowel.
+ * Note that here we using mutation wildcards (a>aa,o>oo) and (*>a) from
+ * file 'etc.tpl.txt'.
+ *
+ * Thus lets describe matching rules for 'foo - bar' verbs.
+ */
+ 
+/*
+ * rules
+ */
+ 
+.match .backward mvb_time_present {  /* e.g.                     */
+  -(a>aa,o>oo) | V.pr.               /* afo -> afoo, aba -> abaa */
+}
+
+.match .forward mvb_time_past { /* e.g.                       */
+  -(*>a) | V.p.                 /* ubaa -> abaa, ufoo -> afoo */
+}
+
+.match .forward m_verb {
+  mvb_time_past stem mvb_time_present | vb. verb
+}
+
+/*
+ * Match specification is the powerful easy mechanism for words recognision.
+ * Each regular match expression has 3 mode:
+ *
+ *   '=' match mode:
+ *         only comparation.
+ *   '+' rift mode:
+ *         comparation and rifting from subword copy,
+ *         appending detached part to rule 'value' field that could be
+ *         found in the output generated files.
+ *   '-' hold mode (comparation and holding)
+ *         comparation and holding (not detaching),
+ *         appending holded part to rule 'value' field that could be
+ *         found in the output generated files.
+ *
+ * Here we are using mutations. Mutations applicable to the edge of the
+ * current subword copy only.
+ *
+ * Example:               /* meaning */
+ *   -i(*>a)=e            /* vowel 'i' following vowel 'e'
+ *                           ('ie' -> 'ae' for '.forward' rules)
+ *                           ('ie' -> 'ia' for '.backward' rules) */
+ *   -i(a>aa,o>oo)(*>a)=e /* vowel 'i' following by vowel 'e'
+ *                           ('ie' -> never match for '.forward' rules)
+ *                           ('ie' -> 'iaa' for '.backward' rules) */
+ */
+ 

@@ -1,0 +1,145 @@
+/*
+ * Template for your own grammar reference.
+ * Your full name here.
+ *
+ * This is the adjective definition file.
+ */
+
+.module /* adj.qu */
+
+/*
+ * '.module' directive defines local wildcard scope. Any wildcard defined in
+ * this section will be forgotten when next '.module' directive meets.
+ */
+ 
+.language my 1 100 /* see 'lang.tpl.txt' file for details */
+.compiler 1 0      /* see 'lang.tpl.txt' file for details */
+
+/* ==========================
+ * ADJECTIVE CLASS DEFINITION
+ * ========================== */
+ 
+/*
+ * attributes
+ */
+
+.attribute aa_declension 1 .verbose {
+  AD.C  = "consonant declension"
+  AD.V  = "vovel declension"
+}
+
+.attribute aa_number 2 {
+  A.sg.  = "singular number"
+  A.pl.  = "plural number"
+}
+
+.attribute aa_degree 3 {
+  A.no.  = "no special degree"
+  A.sup. = "superlative"
+  A.cmp. = "comparative"
+}
+
+/*
+ * Here adjective attributes defined. We have alreafy consider '.attribute'
+ * directive in the 'lang.tpl.txt' file.
+ */
+ 
+/*
+ * class implementation
+ */
+ 
+.class adjective {
+  pars_orationis
+  aa_declension
+  aa_number
+  aa_degree
+}
+
+/*
+ * The classes are sets of the attributes.
+ * One attribute can be shared in many classes.
+ * But rule matching stops immediatelly if the not shared attributes
+ * from different classes meets or class ambiguity meets.
+ *
+ *   .class <name> {
+ *     <member>
+ *     ...
+ *   }
+ *
+ *   Where:
+ *     <name>   - Unique name of the class.
+ *     <member> - Attribute name.
+ */
+ 
+/*
+ * It's time to introduce your experimental 'foo - bar' language.
+ * The 'foo' - 'bar' language has only two adjective: 'foo' and 'bar'.
+ * If adjective ends with consonant - it is consonant declension AD.C (bar).
+ * If adjective ends with vowel     - it is vowel declension AD.V (foo).
+ * If adjective has not additional endings - it has singular number.
+ * Plural number forms like this:
+ *   For AD.C by adding vowel  'a'
+ *   For AD.V by adding suffix 'ra'
+ * Superlative A.sup. and comparative A.cmp. are formed like this:
+ *   A.sup. by prefix 'am'
+ *   A.cmp. exists only for adjective starts with consonant and
+ *          forms by appending any short vowel (wildcard @ from 'etc.tpl.txt')
+ *          at the beggining of the word.
+ * Supervalive and comparative forms plural number on it's own manner.
+ * Only adjectives ends with vowel can form plural A.sup. or A.cmp. by
+ * appending the 'fa' suffix to the end of the word.
+ *
+ * Thus lets describe matching rules for 'foo - bar' adjectives.
+ */
+ 
+/*
+ * rules
+ */
+ 
+.match .backward ma_number {        /* e.g.         */
+  =#          | A.sg. AD.C          /* bar   -> bar */
+  =*          | A.sg. AD.V          /* foo   -> foo */
+  =#+a        | A.pl. AD.C A.no.    /* bara  -> bar */
+  =*+ra       | A.pl. AD.V A.no.    /* foora -> foo */
+  =*+fa       | A.pl. AD.V ~ A.no.  /* foofa -> foo */
+}
+
+.match .forward ma_degree { /* e.g.         */
+  +am  | A.sup.             /* ambar -> bar */
+  +@-# | A.cmp.             /* obar  -> bar */
+  =.   | ~ A.sup. ~ A.cmp.  /* the last line match
+                             * always cause '.' is 
+                             * wildcard for any
+                             * phoneme */
+}
+
+.match .forward m_adjective {
+  ma_degree stem ma_number | adj. adjective
+}
+
+/*
+ * Match specification is the powerful easy mechanism for words recognision.
+ * Each regular match expression has 3 mode:
+ *
+ *   '=' match mode:
+ *         only comparation.
+ *   '+' rift mode:
+ *         comparation and rifting from subword copy,
+ *         appending detached part to rule 'value' field that could be
+ *         found in the output generated files.
+ *   '-' hold mode (comparation and holding)
+ *         comparation and holding (not detaching),
+ *         appending holded part to rule 'value' field that could be
+ *         found in the output generated files.
+ *
+ * Also regular expressions supports negotiation of the single next character
+ * or wildcard (wildcard can has arbitrary name length) through the preceding
+ * reserved symbol '~'.
+ *
+ * Examples: /* meaning */
+ *   =~a     /* not 'a' */
+ *   =~ab    /* not 'a' followed by 'b' */
+ *   =~a~b   /* not 'a' followed by not 'b' */
+ *   =~#     /* not any phoneme from wildcard '#' consistent alphabet tree */
+ */
+ 

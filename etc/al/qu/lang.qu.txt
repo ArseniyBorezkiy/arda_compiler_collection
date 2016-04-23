@@ -25,6 +25,8 @@
 .include "noun.qu.txt"
 /* .include "verb.qu.txt" */
 
+.global
+
 .match .forward main {
   m_adjective
   m_noun

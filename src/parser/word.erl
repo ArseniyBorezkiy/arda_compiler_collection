@@ -145,20 +145,23 @@ horizontal ([ Rule | Tail ], Guards, Word, Table, OID1)
 
 is_conflict (Guards1, Guards2) ->
   Fun2 =
-    fun ({ Guard2, Negotiated2 }) ->
-      Fun1 =
-        fun
-          ({ Guard1, Negotiated1 }) when Guard1 =/= Guard2 ->
-            Entity1 = model:get_entity_name (Guard1),
-            Entity2 = model:get_entity_name (Guard2),
-            case Entity1 =/= Entity2 of
-              true  -> false;
-              false -> Negotiated1 =:= Negotiated2
-            end;
-          ({ _Guard2, Negotiated1 }) when Negotiated1 =/= Negotiated2 -> true;
-          ({ _Guard2, _Negotiated2 }) -> false
-        end,
-      lists:any (Fun1, Guards1)
+    fun
+      ({ _Guard2, undefined }) -> false;
+      ({ Guard2, Negotiated2 }) ->
+        Fun1 =
+          fun
+            ({ _Guard1, undefined }) -> false;
+            ({ Guard1, Negotiated1 }) when Guard1 =/= Guard2 ->
+              Entity1 = model:get_entity_name (Guard1),
+              Entity2 = model:get_entity_name (Guard2),
+              case Entity1 =/= Entity2 of
+                true  -> false;
+                false -> Negotiated1 =:= Negotiated2
+              end;
+            ({ _Guard2, Negotiated1 }) when Negotiated1 =/= Negotiated2 -> true;
+            ({ _Guard2, _Negotiated2 }) -> false
+          end,
+        lists:any (Fun1, Guards1)
     end,
   lists:any (Fun2, Guards2).
 
@@ -173,6 +176,8 @@ which_class (Guards) ->
 
 do_which_class ([], undefined) -> [];
 do_which_class ([], Classes) -> sets:to_list (Classes);
+do_which_class ([ { Class, undefined } | _Tail ], _Classes1) ->
+  [ Class ];
 do_which_class ([ { Guard, _Negotiated } | Tail ], Classes1) ->
   Attribute = model:get_entity_name (Guard),
   Filtermap =
@@ -272,8 +277,9 @@ format_guards (Guards) ->
 do_format_guards ([], Acc) -> Acc;
 do_format_guards ([ { Guard, Negotiate } | Tail ], Acc) ->
   case Negotiate of
-    false -> do_format_guards (Tail, " " ++ Guard ++ Acc);
-    true  -> do_format_guards (Tail, " ~" ++ Guard ++ Acc)
+    false     -> do_format_guards (Tail, " " ++ Guard ++ Acc);
+    undefined -> do_format_guards (Tail, " " ++ Guard ++ Acc);
+    true      -> do_format_guards (Tail, " ~" ++ Guard ++ Acc)
   end.
 
 get_route (OID, Table) ->

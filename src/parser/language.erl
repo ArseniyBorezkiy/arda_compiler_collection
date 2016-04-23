@@ -111,6 +111,7 @@ main (?TT_SECTION, ".class") ->
   model:create_entity (Name, ?ET_CLASS, []),
   lexer:load_token (Name, ?TT_CLASS),
   lexer:next_token (?TT_CONTENT_BEGIN),
+  model:create_property (Name, #member { class = Name, member = Name }),
   erlang:put (base, Name),
   class;
 
@@ -326,16 +327,24 @@ mutation (?TT_PHONEME, PhonemeSrc) ->
 
 mutation (?TT_WILDCARD, WildcardSrc) ->
   % wildcard '=' phoneme
-  PhonemesSrc = model:get_phonemes (WildcardSrc),
-  lexer:next_token (?TT_ASSIGNMENT),
-  PhonemeDst = lexer:next_token (?TT_PHONEME),
-  Entity = erlang:get (base),
-  Fun =
-    fun (PhonemeSrc) ->
-      model:create_property (Entity, ?UPREFIX (Entity, PhonemeSrc), PhonemeDst)
-    end,
-  lists:foreach (Fun, PhonemesSrc),
-  mutation;
+  case rule:get_starts_with (WildcardSrc) of
+    { { ?ET_ALPHABET, Alphabet, _ }, Genealogist } ->
+      Phonemes = model:get_recursive_properties ([ Alphabet ], Genealogist),
+      lexer:next_token (?TT_ASSIGNMENT),
+      PhonemeDst = lexer:next_token (?TT_PHONEME),
+      Entity = erlang:get (base),
+      Fun =
+        fun (#property { name = PhonemeSrc }) ->
+          Property = ?UPREFIX (Entity, PhonemeSrc),
+          model:create_property (Entity, Property, PhonemeDst)
+        end,
+      lists:foreach (Fun, Phonemes),
+      mutation;
+    _ ->
+      Format = "expected alphabetical wildcard instead of '~p'",
+      debug:warning (?MODULE, Format, [ WildcardSrc ]),
+      exit
+  end;
 
 mutation (Type, Token) -> default (Type, Token, mutation).
 
@@ -409,6 +418,16 @@ match_guard (?TT_PROPERTY, Property) ->
   erlang:put (negotiated, false),
   match_guard;
 
+match_guard (?TT_CLASS, Entity) ->
+  % condition
+  Match      = erlang:get (base),
+  OrdinalX   = erlang:get (rule_x),
+  OrdinalY   = erlang:get (rule_y),
+  model:create_guard (Match, OrdinalX, OrdinalY, Entity, Entity, undefined),
+  erlang:put (rule_x, OrdinalX + 1),
+  erlang:put (negotiated, false),
+  match_guard;
+
 match_guard (Type, Token) -> default (Type, Token, match_guard).
 
 %
@@ -449,10 +468,16 @@ comment (?TT_COMMENT_END, "*/") ->
     1 ->
       erlang:put (comment, 0),
       erlang:get (state);
-    N ->
+    N ->      
       erlang:put (comment, N - 1),
       comment
   end;
+
+comment (?TT_COMMENT_BEGIN, "/*") ->
+  % begin multiline comment
+  N = erlang:get (comment),
+  erlang:put (comment, N + 1),
+  comment;
 
 comment (?TT_EOT, "") ->
   fatal ("unexpected end of the text while comment not finished"),

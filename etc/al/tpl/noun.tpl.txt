@@ -1,0 +1,76 @@
+/*
+ * Template for your own grammar reference.
+ * Your full name here.
+ *
+ * This is the noun definition file.
+ */
+
+.module /* noun.tpl */
+
+/*
+ * '.module' directive defines local wildcard scope. Any wildcard defined in
+ * this section will be forgotten when next '.module' directive meets.
+ */
+ 
+.language my 1 100 /* see 'lang.tpl.txt' file for details */
+.compiler 1 0      /* see 'lang.tpl.txt' file for details */
+
+/* =====================
+ * NOUN CLASS DEFINITION
+ * ===================== */
+ 
+/*
+ * class implementation
+ */
+ 
+.class noun {
+  pars_orationis
+}
+
+/*
+ * The classes are sets of the attributes.
+ * One attribute can be shared in many classes.
+ * But rule matching stops immediatelly if the not shared attributes
+ * from different classes meets or class ambiguity meets.
+ *
+ *   .class <name> {
+ *     <member>
+ *     ...
+ *   }
+ *
+ *   Where:
+ *     <name>   - Unique name of the class.
+ *     <member> - Attribute name.
+ */
+ 
+/*
+ * It's time to introduce your experimental 'foo - bar' language.
+ * The 'foo' - 'bar' language has only one noun: 'fb'.
+ * But there are small assumption: between two consonants can be places
+ * arbitrary count of vowels.
+ *
+ * Thus lets describe matching rules for 'foo - bar' nouns.
+ */
+ 
+/*
+ * rules
+ */
+
+.match .forward mn_vowel_left {
+  =##
+  =#+* mn_vowel_left
+}
+
+.match .backward mn_vowel_right {
+  =##
+  mn_vowel_right +*=#
+}
+
+.match .forward m_noun {
+  mn_vowel_left stem mn_vowel_right | n. noun
+}
+
+/*
+ * Match specification is the powerful easy mechanism for words recognision.
+ * For details see 'adj.tpl.txt' and 'verb.tpl.txt' files.
+ */
