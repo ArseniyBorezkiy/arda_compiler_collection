@@ -15,8 +15,14 @@
 /*
  * attributes
  */
- 
-.attribute avb_time {
+
+.attribute avb_conjugation 1 .verbose {
+  VC.A        = "A-steam verb"
+  VC.B        = "basic verb"
+  VC.U        = "U-steam verb"
+}
+
+.attribute avb_time 2 {
   V.inf.      = "infinitive"
   V.aor.      = "aorist"
   V.imp.      = "imperative"
@@ -27,19 +33,19 @@
   V.paf.      = "past future"
 }
 
-.attribute avb_subject {
-  V.1p.sg.s.  = "1-st singular subject"
-  V.2ip.sg.s. = "2-nd intimate singular subject"
-  V.2fp.sg.s. = "2-nd formal singular subject"
-  V.3p.sg.s.  = "3-rd singular subject"
-  V.1p.dui.s. = "1-st dual inclusive subject"
-  V.1p.due.s. = "1-st dual exclusive subject"
-  V.1p.pli.s. = "1-st plural inclusive subject"
-  V.1p.ple.s. = "1-st plural exclusive subject"
-  V.3p.pl.s.  = "3-rd plural subject"
+.attribute avb_subject 3 {
+  V.1p.sg.s.     = "1-st singular subject"
+  V.2ip.sg.s.    = "2-nd intimate singular subject"
+  V.2fp.sg.s.    = "2-nd formal singular subject"
+  V.3p.sg.s.     = "3-rd singular subject"
+  V.1p.du.inc.s. = "1-st dual inclusive subject"
+  V.1p.du.exc.s. = "1-st dual exclusive subject"
+  V.1p.pl.inc.s. = "1-st plural inclusive subject"
+  V.1p.pl.exc.s. = "1-st plural exclusive subject"
+  V.3p.pl.s.     = "3-rd plural subject"
 }
 
-.attribute avb_object {
+.attribute avb_object 4 {
   V.1p.sg.o.  = "1-st single object"
   V.2ip.sg.o. = "2-nd intimate singular object"
   V.2fp.sg.o. = "2-nd formal singular object"
@@ -47,33 +53,27 @@
   V.3p.pl.o.  = "3-rd plural object"
 }
 
-.attribute avb_vowel_type {
-  V.st.s.w.   = "steam short vowel"
-  V.st.l.w.   = "steam long vowel"
-}
-
-.attribute avb_augment {
-  V.aug.      = "augment"
-  V.aug.no.   = "no augment"
-}
-
-.attribute avb_augment_type {
-  V.aug.sep.  = "separated augment type"
-  V.aug.fus.  = "fused augment type"
-}
-
-.attribute avb_conjugation {
-  VC.A        = "A-steam verb"
-  VC.B        = "basic verb"
-  VC.U        = "U-steam verb"
-}
-
-.attribute avb_ending {
+.attribute avb_ending 5 .verbose {
   V.end.      = "with subject or object"
   V.end.no.   = "without subject or object"
 }
 
-.attribute avb_prefix {
+.attribute avb_vowel_type 6 .verbose {
+  V.st.s.w.   = "steam short vowel"
+  V.st.l.w.   = "steam long vowel"
+}
+
+.attribute avb_augment 7 .verbose {
+  V.aug.      = "augment"
+  V.aug.no.   = "no augment"
+}
+
+.attribute avb_augment_type 8 .verbose {
+  V.aug.sep.  = "separated augment type"
+  V.aug.fus.  = "fused augment type"
+}
+
+.attribute avb_prefix 9 .verbose {
   V.pfx.      = "with prefix"
   V.pfx.no.   = "without prefix"
 }
@@ -83,6 +83,7 @@
  */
  
 .class verb {
+  pars_orationis
   avb_time
   avb_subject
   avb_object
@@ -103,12 +104,12 @@
   +tye  | V.2ip.sg.s.
   +lye  | V.2fp.sg.s.
   +se   | V.3p.sg.s.
-  +ngwe | V.1p.dui.s.
-  +nque | V.1p.dui.s.
-  +mme  | V.1p.due.s.
-  +lve  | V.1p.pli.s.
-  +lwe  | V.1p.pli.s.
-  +lme  | V.1p.ple.s.
+  +ngwe | V.1p.du.inc.s.
+  +nque | V.1p.du.inc.s.
+  +mme  | V.1p.du.exc.s.
+  +lve  | V.1p.pl.inc.s.
+  +lwe  | V.1p.pl.inc.s.
+  +lme  | V.1p.pl.exc.s.
   +lte  | V.3p.pl.s.
   +nte  | V.3p.pl.s.
 }

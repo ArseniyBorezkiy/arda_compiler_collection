@@ -9,12 +9,11 @@
     { registered, [] },
     { applications, [ kernel, stdlib ] },
     { mod, { al_sup, [
-      { log_cl, 3 },
+      { log_cl, 10 },
       { log_fl, 2 },
-      { log,    "var/tmp/al.log" },
-      { ref,    "lang.qu.txt" },
-      { lang,   "etc/al" },
-      { src,    "var" },
-      { dst,    "var" } ] } }
+      { log_dir, "var/tmp" },
+      { ref_dir, "etc/al" },
+      { src_dir, "var" },
+      { dst_dir, "var" } ] } }
   ]
 }.

@@ -10,9 +10,12 @@
           % external interface
           start/1,
           % internal callback
-          run/3
+          run/3,
+          % tools
+          about/0
          ]).
 
+% HEADERS
 -include ("general.hrl").
 
 % =============================================================================
@@ -20,7 +23,7 @@
 % =============================================================================
 
 start ([ Node ]) ->
-  Cmd = init:get_plain_arguments (),  
+  Cmd = init:get_plain_arguments (),
   _Status =
     case parse_command_line (Cmd, []) of
       error -> -4;
@@ -55,13 +58,7 @@ start ([ Node ]) ->
             -3;
           false when About == true ->
             % print about
-            io:format ("Arda lexical compiler ~p.~p. ~n", [ ?BC_VERSION, ?FC_VERSION ]),
-            io:format ("  Made by Borezkiy Arseniy Petrovich, 2016. ~n"),
-            io:format ("  Redistributable under Lesser General Public License. ~n"),
-            io:format ("  Author links: ~n"),
-            io:format ("    email  : apborezkiy1990@gmail.com~n"),
-            io:format ("    vk.com : Elen Evenstar ~n"),
-            io:format ("    hh.ru  : Borezkiy Arseniy Petrovich, Ufa, 04.10.1990 ~n~n"),
+            about (),
             -3;
           true ->
             % print command line greetings
@@ -84,6 +81,15 @@ start ([ Node ]) ->
         end
     end,
   init:stop ().
+
+about () ->
+  io:format ("Arda lexical compiler ~p.~p. ~n", [ ?BC_VERSION, ?FC_VERSION ]),
+  io:format ("  Made by Borezkiy Arseniy Petrovich, 2016. ~n"),
+  io:format ("  Redistributable under Lesser General Public License. ~n"),
+  io:format ("  Author links: ~n"),
+  io:format ("    email  : apborezkiy1990@gmail.com~n"),
+  io:format ("    vk.com : Elen Evenstar ~n"),
+  io:format ("    hh.ru  : Borezkiy Arseniy Petrovich, Ufa, 04.10.1990 ~n~n").
 
 % =============================================================================
 % INTERNAL FUNCTIONS

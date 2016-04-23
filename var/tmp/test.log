@@ -24,4 +24,4 @@ Arda lexical compiler 1.0.
     vk.com : Elen Evenstar 
     hh.ru  : Borezkiy Arseniy Petrovich, Ufa, 04.10.1990 
 
-AL -m -s -d ./tests.qu -i test.in.txt -o test.out.txt
+AL -d ./tests.qu -i test.in.txt -o test.out.txt
