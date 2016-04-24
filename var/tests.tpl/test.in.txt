@@ -1,1 +1,19 @@
-foooob
+loool  /* noun */
+ll     /* noun */
+
+ololoo /* verb infinitive   */
+olalaa /* verb infinitive   */
+ulalaa /* verb past time    */
+uloloo /* verb past time    */
+ololo  /* verb present time */
+olala  /* verb present time */
+
+lo       /* singular adjective vowel declension                 */
+ol       /* singular adjective consonant declension             */
+lola     /* plural adjective vowel declension                   */
+ola      /* plural adjective consonant declension               */
+allo     /* singular superlative adjective vowel declension     */
+alol     /* singular superlative adjective consonant declension */
+ulo      /* singular comparative adjective vowel declension     */
+allololo /* plural superlative adjective vowel declension       */
+ulololo  /* plural comparative adjective vowel declension       */

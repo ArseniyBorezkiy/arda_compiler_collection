@@ -169,16 +169,19 @@ do_format_short ([ #word { guards = Guards, stem = Stem, class = Class } | Tail 
       ({ _Name, undefined }, Acc0) -> Acc0
     end,
   Sort =
-    fun ({ Name1, _ }, { Name2, _ }) ->
-      Property1  = model:get_property (Name1),
-      Property2  = model:get_property (Name2),
-      Entity1    = Property1#property.entity,
-      Entity2    = Property2#property.entity,
-      Attribute1 = model:get_entity (Entity1),
-      Attribute2 = model:get_entity (Entity2),
-      Order1     = proplists:get_value (ordinal, Attribute1#entity.tag),
-      Order2     = proplists:get_value (ordinal, Attribute2#entity.tag),
-      Order1 =< Order2
+    fun
+      ({ _Name1, _ }, { _Name2, undefined }) -> false;
+      ({ _Name1, undefined }, { _Name2, _ }) -> false;
+      ({ Name1, _ }, { Name2, _ }) ->
+        Property1  = model:get_property (Name1),
+        Property2  = model:get_property (Name2),
+        Entity1    = Property1#property.entity,
+        Entity2    = Property2#property.entity,
+        Attribute1 = model:get_entity (Entity1),
+        Attribute2 = model:get_entity (Entity2),
+        Order1     = proplists:get_value (ordinal, Attribute1#entity.tag),
+        Order2     = proplists:get_value (ordinal, Attribute2#entity.tag),
+        Order1 =< Order2
     end,
   Attributes = lists:foldl (GetAttributes, "", lists:sort (Sort, Guards)),
   Format     =

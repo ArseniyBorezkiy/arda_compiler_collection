@@ -1,3 +1,70 @@
+/*
+ * verbs
+ */
+
+falasta    /* V.inf. V.aor. V.imp. */
+faalastea  /* V.pr.                */
+falastane  /* V.p.                 */
+falastuva  /* V.f.                 */
+afaalastie /* V.pfct.              */
+
+hame       /* V.inf. V.aor. V.imp. */
+haama      /* V.pr.                */
+hamne      /* V.p.                 */
+hamuva     /* V.f.                 */
+ahaamie    /* V.pfct.              */
+
+miquo      /* V.inf.               */
+mique      /* V.aor.               */
+miqwe      /* V.aor.               */
+miiqua     /* V.pr.                */
+miiqwa     /* V.pr.                */
+miqune     /* V.p.                 */
+miquva     /* V.f.                 */
+imiiquie   /* V.pfct.              */
+imiiqwie   /* V.pfct.              */
+
+/*
+ * verbal forms
+ */
+ 
+falastie   /* gerund             */
+faalastala /* active participle  */
+falastaina /* passive participle */
+
+haamala    /* active participle  */
+hamna      /* passive participle */
+
+miquina    /* passive participle */
+miquuna    /* passive participle */
+ 
+/*
+/*
+ * adjectives
+ */
+
+loomea
+aman
+helca
+melme
+loomie
+amani
+helce
+melmi
+
+/*
+ * adverbs
+ */
+ 
+loomeave
+amanwe
+helcave
+melmeve
+
+/*
+ * nouns
+ */
+
 hild
 hildi
 hildinya
@@ -17,3 +84,4 @@ hildinyallor
 hildinyallon
 hildinyanen
 hildinyainen
+*/

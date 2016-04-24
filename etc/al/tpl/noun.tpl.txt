@@ -44,12 +44,12 @@
  */
  
 /*
- * It's time to introduce your experimental 'foo - bar' language.
- * The 'foo' - 'bar' language has only one noun: 'fb'.
+ * It's time to introduce your experimental 'lol' language.
+ * The 'lol' language has only one noun: 'll'.
  * But there are small assumption: between two consonants can be places
- * arbitrary count of vowels.
+ * arbitrary count of arbitrary vowels.
  *
- * Thus lets describe matching rules for 'foo - bar' nouns.
+ * Thus lets describe matching rules for 'lol' noun.
  */
  
 /*

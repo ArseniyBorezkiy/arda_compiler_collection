@@ -15,9 +15,9 @@
 .vocabular stem
 
 .attribute pars_orationis 0 {
-  n.   = "noun"
-  adj. = "adjective"
-  vb.  = "verb"
+  n.   = "the noun"
+  adj. = "the adjective"
+  vb.  = "the verb"
 }
 
 .include "etc.qu.txt"
@@ -28,9 +28,8 @@
 .global
 
 .match .forward main {
-  m_adjective
   m_noun
-  /* m_verb */
+  m_adjective
 }
 
 .target main

@@ -72,45 +72,42 @@
  */
  
 /*
- * It's time to introduce your experimental 'foo - bar' language.
- * The 'foo' - 'bar' language has only two adjective: 'foo' and 'bar'.
- * If adjective ends with consonant - it is consonant declension AD.C (bar).
- * If adjective ends with vowel     - it is vowel declension AD.V (foo).
+ * It's time to introduce your experimental 'lol' language.
+ * The 'lol' language has only two adjective: 'lo' and 'ol'.
+ * If adjective ends with consonant - it is consonant declension AD.C (ol).
+ * If adjective ends with vowel     - it is vowel declension AD.V (lo).
  * If adjective has not additional endings - it has singular number.
  * Plural number forms like this:
  *   For AD.C by adding vowel  'a'
- *   For AD.V by adding suffix 'ra'
+ *   For AD.V by adding suffix 'la'
  * Superlative A.sup. and comparative A.cmp. are formed like this:
- *   A.sup. by prefix 'am'
+ *   A.sup. by prefix 'al'
  *   A.cmp. exists only for adjective starts with consonant and
  *          forms by appending any short vowel (wildcard @ from 'etc.tpl.txt')
  *          at the beggining of the word.
- * Supervalive and comparative forms plural number on it's own manner.
+ * Superlative and comparative forms plural number on it's own manner.
  * Only adjectives ends with vowel can form plural A.sup. or A.cmp. by
- * appending the 'fa' suffix to the end of the word.
+ * appending the 'lolo' suffix to the end of the word.
  *
- * Thus lets describe matching rules for 'foo - bar' adjectives.
+ * Thus lets describe matching rules for 'lol' adjectives.
  */
  
 /*
  * rules
  */
  
-.match .backward ma_number {        /* e.g.         */
-  =#          | A.sg. AD.C          /* bar   -> bar */
-  =*          | A.sg. AD.V          /* foo   -> foo */
-  =#+a        | A.pl. AD.C A.no.    /* bara  -> bar */
-  =*+ra       | A.pl. AD.V A.no.    /* foora -> foo */
-  =*+fa       | A.pl. AD.V ~ A.no.  /* foofa -> foo */
+.match .backward ma_number {        /* e.g.             */
+  =#          | A.sg. AD.C          /* al       -> al   */
+  =*          | A.sg. AD.V          /* lo       -> lo   */
+  =#+a        | A.pl. AD.C A.no.    /* ola      -> ol   */
+  =*+la       | A.pl. AD.V A.no.    /* lola     -> lo   */
+  =*+lolo     | A.pl. AD.V ~ A.no.  /* allololo -> allo */
 }
 
-.match .forward ma_degree { /* e.g.         */
-  +am  | A.sup.             /* ambar -> bar */
-  +@-# | A.cmp.             /* obar  -> bar */
-  =.   | ~ A.sup. ~ A.cmp.  /* the last line match
-                             * always cause '.' is 
-                             * wildcard for any
-                             * phoneme */
+.match .forward ma_degree { /* e.g.                                        */
+  +al  | A.sup.             /* allo -> lo, alol -> ol                      */
+  +@-# | A.cmp.             /* ulo  -> lo                                  */
+  =.   | ~ A.sup. ~ A.cmp.  /* '.' is any phoneme wildcard ('etc.tpl.txt') */
 }
 
 .match .forward m_adjective {

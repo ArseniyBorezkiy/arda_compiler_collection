@@ -24,8 +24,9 @@
  */
 
 .attribute mvb_time 1 {
-  V.pr. = "present time"
-  V.p.  = "past time"
+  V.inf. = "infinitive"
+  V.pr.  = "present time"
+  V.p.   = "past time"
 }
 
 /*
@@ -59,30 +60,34 @@
  */
  
 /*
- * It's time to introduce your experimental 'foo - bar' language.
- * The 'foo' - 'bar' language has only two verbs: 'afoo' and 'abaa'.
+ * It's time to introduce your experimental 'lol' language.
+ * The 'lol' language has only two verb: 'ololoo' and 'olalaa'.
+ * The infinitive coinsides to vocabular stem.
  * Present time of the verb forms by shorthening of the last vowel.
- * Past time forms by replacing of the first vowel 'a' to any other vowel.
- * Note that here we using mutation wildcards (a>aa,o>oo) and (*>a) from
+ * Past time forms by replacing of the first vowel 'o' to any other vowel.
+ * Note that here we using mutation wildcards (a>aa,o>oo) and (*>o) from
  * file 'etc.tpl.txt'.
  *
- * Thus lets describe matching rules for 'foo - bar' verbs.
+ * Thus lets describe matching rules for 'lol' verbs.
  */
  
 /*
  * rules
  */
  
-.match .backward mvb_time_present {  /* e.g.                     */
-  -(a>aa,o>oo) | V.pr.               /* afo -> afoo, aba -> abaa */
+.match .backward mvb_time_present { /* e.g.                               */
+  =.           | V.inf.             /* '.' is any phoneme ('etc.tpl.txt') */
+  -(a>aa,o>oo) | V.pr.              /* ololo -> ololoo, olala -> olalaa   */
 }
 
-.match .forward mvb_time_past { /* e.g.                       */
-  -(*>a) | V.p.                 /* ubaa -> abaa, ufoo -> afoo */
+.match .forward mvb_time_past { /* e.g.                               */
+  =.        | V.inf.            /* '.' is any phoneme ('etc.tpl.txt') */
+  =~o-(*>o) | V.p.              /* eloloo -> ololoo, ulalaa -> olalaa */
 }
 
 .match .forward m_verb {
-  mvb_time_past stem mvb_time_present | vb. verb
+  mvb_time_past stem    | vb. verb
+  stem mvb_time_present | vb. verb
 }
 
 /*
@@ -104,11 +109,11 @@
  * current subword copy only.
  *
  * Example:               /* meaning */
- *   -i(*>a)=e            /* vowel 'i' following vowel 'e'
- *                           ('ie' -> 'ae' for '.forward' rules)
- *                           ('ie' -> 'ia' for '.backward' rules) */
- *   -i(a>aa,o>oo)(*>a)=e /* vowel 'i' following by vowel 'e'
- *                           ('ie' -> never match for '.forward' rules)
- *                           ('ie' -> 'iaa' for '.backward' rules) */
+ *   -u(*>o)=e            /* vowel 'u' following vowel 'e'
+ *                           ('ue' -> 'oe' for '.forward' rules)
+ *                           ('ue' -> 'uo' for '.backward' rules) */
+ *   -u(a>aa,o>oo)(*>o)=e /* vowel 'u' following by vowel 'e'
+ *                           ('ue' -> never match for '.forward' rules)
+ *                           ('ue' -> 'uoo' for '.backward' rules) */
  */
  

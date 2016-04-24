@@ -167,9 +167,9 @@
  */
 
 .match .forward main {
-  /* m_adjective /* see adj.tpl.txt */ */
+  m_adjective /* see adj.tpl.txt  */
   m_noun      /* see noun.tpl.txt */
-  /* m_verb      /* see verb.tpl.txt */ */
+  m_verb      /* see verb.tpl.txt */
 }
 
 .target main

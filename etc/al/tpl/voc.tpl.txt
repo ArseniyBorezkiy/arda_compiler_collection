@@ -19,8 +19,8 @@
  */
  
 .vocabulary voc_adjectives {
-  foo  adj. AD.V
-  bar  adj. AD.C
+  lo  adj. AD.V
+  ol  adj. AD.C
 }
 
 /*
@@ -28,7 +28,7 @@
  */
  
 .vocabulary voc_nouns {
-  fb  n.
+  ll  n.
 }
 
 /*
@@ -36,8 +36,8 @@
  */
  
 .vocabulary voc_verbs {
-  afoo  vb.
-  abaa  vb.
+  ololoo  vb.
+  olalaa  vb.
 }
 
 /*

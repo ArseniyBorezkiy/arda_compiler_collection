@@ -178,5 +178,5 @@
 }
 
 .match .forward m_noun {
-  stem mn_vowel mn_owner mn_case_number
+  stem mn_vowel mn_owner mn_case_number | n. noun
 }

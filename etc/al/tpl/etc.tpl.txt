@@ -28,6 +28,7 @@
 .alphabet short_vowel {
   a   = "vowel (a)"
   o   = "vowel (o)"
+  u   = "vowel (u)"
 }
 
 .alphabet long_vowel {
@@ -42,9 +43,7 @@
  */
  
 .alphabet consonant {
-  f   = "consonant f"
-  b   = "consonant b"
-  r   = "consonant r"
+  l   = "consonant l"
 }
 
 /*
@@ -97,8 +96,8 @@
   o = oo
 }
 
-.mutation change_vowel_to_a {
-  * = a
+.mutation change_vowel_to_o {
+  * = o
 }
 
 /*
@@ -106,7 +105,7 @@
  */
  
 .wildcard (a>aa,o>oo) longify_vowel
-.wildcard (*>a)       change_vowel_to_a
+.wildcard (*>o)       change_vowel_to_o
 
 /*
  * Mutations are like functions applied to the left or right end of the

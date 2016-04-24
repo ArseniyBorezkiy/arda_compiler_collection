@@ -18,6 +18,9 @@
  
 .vocabulary voc_adjectives {
   loomea   adj. AD.EA
+  aman     adj. AD.C
+  helca    adj. AD.A
+  melme    adj. AD.E
 }
 
 /*
@@ -25,10 +28,17 @@
  */
  
 .vocabulary voc_nouns {
-  laurelin n. ND.C
-  leera    n. ND.V
-  miire    n. ND.E
   nixe     n. ND.E
   heri     n. ND.V
   hild     n. ND.C
+}
+
+/*
+ * verbs
+ */
+ 
+.vocabulary voc_verbs {
+  falasta  vb. VB.A
+  ham      vb. VB.B
+  miqu     vb. VB.U
 }

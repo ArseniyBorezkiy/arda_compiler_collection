@@ -20,6 +20,7 @@
   AD.A  = "A-vovel declension"
   AD.E  = "E-vovel declension"
   AD.EA = "EA-vovel declension"
+  AD.C  = "consonant declension"
 }
 
 .attribute aa_number 2 {
@@ -31,9 +32,15 @@
 /*
  * class implementation
  */
- 
+
 .class adjective {
+  pars_orationis
   aa_number
+  aa_declension
+}
+
+.class adverb {
+  pars_orationis
   aa_declension
 }
 
@@ -62,8 +69,17 @@
   -(e>a)=e    | A.pl. AD.A
   -(i>e)=i    | A.pl. AD.E
   -(ie>ea)=ie | A.pl. AD.EA
+  =#+i        | A.pl. AD.C
+}
+
+.match .backward ma_adverb {
+  =a+ve       | AD.A
+  =e+ve       | AD.E
+  =ea+ve      | AD.EA
+  =#+we       | AD.C
 }
 
 .match .forward m_adjective {
-  stem ma_number
+  stem ma_number | adj. adjective
+  stem ma_adverb | adj. adverb
 }
