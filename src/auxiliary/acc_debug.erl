@@ -3,36 +3,31 @@
 %% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
--module (debug).
+-module (acc_debug).
 
-% API
+%
+% api
+%
+
 -export ([
           % supervisor
-          start_link/3,
+          start_link/4,
           % settings
           set_console_level/1,
           set_log_level/1,
+          set_language/1,
+          get_language/0,
           % print
           log/3,
-          log/4,
-          error/2,
-          error/3,
-          warning/2,
-          warning/3,
-          result/2,
-          result/3,
-          detail/2,
-          detail/3,
-          section/2,
-          section/3,
-          success/2,
-          success/3,
           % tools
           sprintf/2,
           parse_int/1
          ]).
 
-% GEN SERVER CALLBACKS
+%
+% gen server callbacks
+%
+
 -export ([
           init/1,
           handle_call/3,
@@ -42,15 +37,22 @@
           code_change/3
          ]).
 
-% HEADERS
+%
+% headers
+%
+
 -include ("general.hrl").
 
-% STATE
+%
+% basic types
+%
+
 -type level_t () :: unsigned_t ().
 
--record (state, { c_level :: level_t (),
-                  f_level :: level_t (),
-                  handle  :: io_device_t () }).
+-record (state, { language :: atom (),
+                  c_level  :: level_t (),
+                  f_level  :: level_t (),
+                  handle   :: io_device_t () }).
 
 % =============================================================================
 % API
@@ -60,8 +62,8 @@
 % supervisor
 %
 
-start_link (File, Levf, Levc) ->
-  Args = { File, Levf, Levc },
+start_link (File, Levf, Levc, Lang) ->
+  Args = { File, Levf, Levc, Lang },
   gen_server:start_link ({ local, ?MODULE }, ?MODULE, Args, []).
 
 %
@@ -76,58 +78,21 @@ set_log_level (Level)
   when is_integer (Level), Level >= 0 ->
   gen_server:cast (?MODULE, { f_level, Level }).
 
+set_language (Language) ->
+  ?validate (Language, ?languages),
+  gen_server:cast (?MODULE, { language, set, Language }).
+
+get_language () ->
+  gen_server:call (?MODULE, { language, get }).
+
 %
 % low level api
 %
 
-log (Module, Level, Message)
+log (Module, Level, Resource)
   when is_integer (Level), Level >= 0 ->
+  Message = acc_resource:encode (Resource),
   gen_server:cast (?MODULE, { log, Module, Level, Message }).
-
-log (Module, Level, Format, Args)
-  when is_integer (Level), Level >= 0 ->
-  Message = lists:flatten (io_lib:format (Format, Args)),
-  log (Module, Level, Message).
-
-%
-% high level api
-%
-
-error (Module, Message) ->
-  log (Module, ?DL_ERROR, Message).
-
-error (Module, Format, Args) ->
-  log (Module, ?DL_ERROR, Format, Args).
-
-warning (Module, Message) ->
-  log (Module, ?DL_WARNING, Message).
-
-warning (Module, Format, Args) ->
-  log (Module, ?DL_WARNING, Format, Args).
-
-result (Module, Message) ->
-  log (Module, ?DL_RESULT, Message).
-
-result (Module, Format, Args) ->
-  log (Module, ?DL_RESULT, Format, Args).
-
-detail (Module, Message) ->
-  log (Module, ?DL_DETAIL, Message).
-
-detail (Module, Format, Args) ->
-  log (Module, ?DL_DETAIL, Format, Args).
-
-section (Module, Message) ->
-  log (Module, ?DL_SECTION, Message).
-
-section (Module, Format, Args) ->
-  log (Module, ?DL_SECTION, Format, Args).
- 
-success (Module, Message) ->
-  log (Module, ?DL_SUCCESS, Message).
-
-success (Module, Format, Args) ->
-  log (Module, ?DL_SUCCESS, Format, Args).
 
 %
 % tools
@@ -150,21 +115,27 @@ parse_int (String) ->
 % intialization
 %
 
-init ({ File, Levf, Levc }) ->
+init ({ File, Levf, Levc, Lang }) ->
   process_flag (trap_exit, true),
   { ok, Handle } = file:open (File, [ append ]),
   { Year, Month, Day } = erlang:date (),
   { Hour, Min, Sec }   = erlang:time(),
   Format   = "~p.~p.~p at ~p:~p:~p",
   Args     = [ ?BC_VERSION, ?FC_VERSION, Day, Month, Year, Hour, Min, Sec ],
-  log_entry (Handle, "~n*** ", ?MODULE, "al ~p.~p started " ++ Format, Args),
-  Greeting = "Arda lexical compiler server ~p.~p.~n~n",
+  log_entry (Handle, "~n*** ", ?MODULE, "acc ~p.~p started " ++ Format, Args),
+  Greeting = "Arda compiler collection server ~p.~p.~n~n",
   io:format (Greeting, [ ?BC_VERSION, ?FC_VERSION ]),
-  { ok, #state { c_level = Levc, f_level = Levf, handle = Handle } }.
+  { ok, #state { c_level  = Levc,
+                 f_level  = Levf,
+                 handle   = Handle,
+                 language = Lang } }.
 
 %
 % dispatchers
 %
+
+handle_call ({ language, get }, _, State) ->
+  { reply, State#state.language, State };
 
 handle_call (_, _, State) ->
   { reply, ok, State }.
@@ -193,6 +164,9 @@ handle_cast ({ log, Module, Level, Message }, State) ->
     false -> ok
   end,
   { noreply, State };
+
+handle_cast ({ language, set, Language }, State) ->
+  { noreply, State#state { language = Language } };
 
 handle_cast (_, State) ->
   { noreply, State }.

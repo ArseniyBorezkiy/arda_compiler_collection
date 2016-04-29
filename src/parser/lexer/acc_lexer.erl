@@ -3,11 +3,14 @@
 %% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
--module (lexer).
--behaviour (gen_lexer).
+-module (acc_lexer).
+-behaviour (gen_acc_lexer).
 -behaviour (gen_server).
 
-% API
+%
+% api
+%
+
 -export ([
           % management
           start_link/3,
@@ -24,13 +27,19 @@
           save/1
          ]).
 
-% GEN LEXER CALLBACKS
+%
+% gen lexer callbacks
+%
+
 -export ([
           success/1,
           error/2
          ]).
 
-% GEN SERVER CALLBACKS
+%
+% gen server callbacks
+%
+
 -export ([
           init/1,
           handle_call/3,
@@ -40,10 +49,16 @@
           code_change/3
          ]).
 
-% HEADERS
+%
+% headers
+%
+
 -include ("general.hrl").
 
-% STATE
+%
+% basic types
+%
+
 -record (s, { dict :: dict:dict (),
               src  :: string (),
               dst  :: string (),
@@ -105,8 +120,7 @@ next_token (Type) when is_atom (Type) ->
   case next_token () of
     { Type, Token } -> Token;
     { Other, Token } ->
-      Format = "expected token '~s' of type '~p' instead of '~p'",
-      debug:result (?MODULE, Format, [ Token, Type, Other ]),
+      ?d_result (?str_al_expected (Token, Type, Other)),
       throw (error)
   end;
 
@@ -115,8 +129,7 @@ next_token (Types) when is_list (Types) ->
   case lists:member (Type, Types) of
     true  -> { Type, Token };
     false ->
-      Format = "expected token '~s' of any type from '~p' instead of '~p'",
-      debug:result (?MODULE, Format, [ Token, Types, Type ]),
+      ?d_result (?str_al_expected_any (Token, Types, Type)),
       throw (error)
   end.
 
@@ -129,10 +142,10 @@ next_token_type () ->
 % =============================================================================
 
 success (Server) ->
-  debug:section (?MODULE, "lexical alasyzer sucessfully finished in ~p", [ Server ]).
+  ?d_section (?str_al_finished (Server)).
 
 error (Server, Message) ->
-  debug:section (?MODULE, "~s in ~p", [ Message, Server ]).
+  ?d_section (?str_al_msg (Message, Server)).
 
 % =============================================================================
 % GEN SERVER CALLBACKS
@@ -161,9 +174,9 @@ handle_call ({ token, next, Pid }, _, State) ->
     case dict:is_key (Pid, Dict) of
       true ->
         { Server, _FileOut } = dict:fetch (Pid, Dict),
-        gen_lexer:next_token (Server);
+        gen_acc_lexer:next_token (Server);
       false ->
-        debug:error (?MODULE, "unauthorized access of ~p", [ Pid ]),
+        ?d_error (?str_al_uaccess (Pid)),
         { error, denied }
     end,
   { reply, Result, State };
@@ -174,9 +187,9 @@ handle_call ({ get_status, Pid }, _, State) ->
     case dict:is_key (Pid, Dict) of
       true ->
         { Server, _FileOut } = dict:fetch (Pid, Dict),
-        gen_lexer:get_status (Server, report);
+        gen_acc_lexer:get_status (Server, report);
       false ->
-        debug:error (?MODULE, "unauthorized access of ~p", [ Pid ]),
+        ?d_error (?str_al_uaccess (Pid)),
         { error, denied }
     end,
   { reply, Result, State }.
@@ -187,19 +200,19 @@ handle_cast ({ register, Pid, Loc, FileIn, FileOut }, State) ->
     false ->
       Ref            = erlang:make_ref (),
       Name           = erlang:list_to_atom (erlang:ref_to_list (Ref)),
-      { ok, Server } = gen_lexer:start_link (Name, ?MODULE),
+      { ok, Server } = gen_acc_lexer:start_link (Name, ?MODULE),
       Dict2          = dict:store (Pid, { Server, FileOut }, Dict1),
-      debug:detail (?MODULE, "registered ~p as ~p for ~p", [ Pid, Server, FileIn ]),
+      ?d_detail (?str_al_registered (Pid, Server, FileIn)),
       Dir =
         case Loc of
           src  -> State#s.src;
           dst  -> State#s.dst;
           lang -> State#s.lang
         end,
-      gen_lexer:include_file (Server, Dir, FileIn),
+      gen_acc_lexer:include_file (Server, Dir, FileIn),
       { noreply, State#s { dict = Dict2 } };
     true ->
-      debug:error (?MODULE, "try to reauthorization of ~p for ~p", [ Pid, FileIn ]),
+      ?d_error (?str_al_reauth (Pid, FileIn)),
       { noreply, State }
   end;
 
@@ -209,11 +222,11 @@ handle_cast ({ unregister, Pid }, State) ->
     true ->
       { Server, FileOut } = dict:fetch (Pid, Dict1),
       Dict2 = dict:erase (Pid, Dict1),
-      gen_lexer:stop (Server),
-      debug:detail (?MODULE, "unregistered ~p that ~p for ~p", [ Pid, Server, FileOut ]),
+      gen_acc_lexer:stop (Server),
+      ?d_detail (?str_al_unregistered (Pid, Server, FileOut)),
       { noreply, State#s { dict = Dict2 } };
     false ->
-      debug:warning (?MODULE, "unauthorizated unregistration of ~p", [ Pid ]),
+      ?d_warning (?str_al_uunregistration (Pid)),
       { noreply, State }
   end;
 
@@ -222,9 +235,9 @@ handle_cast ({ token, load, Pid, Token, Type }, State) ->
   case dict:is_key (Pid, Dict) of
     true ->
       { Server, _FileOut } = dict:fetch (Pid, Dict),
-      gen_lexer:load_token (Server, Token, Type);
+      gen_acc_lexer:load_token (Server, Token, Type);
     false ->
-      debug:error (?MODULE, "unauthorized access of ~p", [ Pid ])
+      ?d_error (?str_al_uaccess (Pid))
   end,
   { noreply, State };
 
@@ -233,9 +246,9 @@ handle_cast ({ token, reset, Pid, Token, Type }, State) ->
   case dict:is_key (Pid, Dict) of
     true ->
       { Server, _FileOut } = dict:fetch (Pid, Dict),
-      gen_lexer:reset_token (Server, Token, Type);
+      gen_acc_lexer:reset_token (Server, Token, Type);
     false ->
-      debug:error (?MODULE, "unauthorized access of ~p", [ Pid ])
+      ?d_error (?str_al_uaccess (Pid))
   end,
   { noreply, State };
 
@@ -250,9 +263,9 @@ handle_cast ({ include, Pid, Loc, Name }, State) ->
           dst  -> State#s.dst;
           lang -> State#s.lang
         end,
-      gen_lexer:include_file (Server, Dir, Name);
+      gen_acc_lexer:include_file (Server, Dir, Name);
     false ->
-      debug:error (?MODULE, "unauthorized access of ~p", [ Pid ])
+      ?d_error (?str_al_uaccess (Pid))
   end,
   { noreply, State };
 
@@ -266,10 +279,9 @@ handle_cast ({ save, Pid, Text }, State) ->
       case file:write_file (Name, Text, [ write ]) of
         ok -> ok;
         { error, Reason } ->
-          Args = [ FileOut, Pid, Reason ],
-          debug:error (?MODULE, "can not write to file ~p from ~p (reason: ~p)", Args)
+          ?d_error (?str_al_notwritable (FileOut, Pid, Reason))
       end;
     false ->
-      debug:error (?MODULE, "unauthorized access of ~p", [ Pid ])
+      ?d_error (?str_al_uaccess (Pid))
   end,
   { noreply, State }.

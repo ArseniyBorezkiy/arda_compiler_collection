@@ -3,11 +3,14 @@
 %% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
--module (al_sup).
+-module (acc_sup).
 -behaviour (supervisor).
 -behaviour (application).
 
-% CALLBACKS
+%
+% api
+%
+
 -export([
         % application
         start/2,
@@ -16,10 +19,16 @@
         init/1
         ]).
 
-% HEADERS
+%
+% headers
+%
+
 -include ("general.hrl").
 
-% SETTINGS
+%
+% settings
+%
+
 -define (APP_RESTART_COUNT, 0).
 -define (APP_RESTART_INTERVAL, 1000).
 -define (SRV_SHUTDOWN_TIME, 3000).
@@ -43,6 +52,7 @@ init (Args) ->
   { ok, Dir } = file:get_cwd (),
   Levc   = proplists:get_value (log_cl, Args),
   Levf   = proplists:get_value (log_fl, Args),
+  Lang   = proplists:get_value (lang, Args),
   Src    = filename:join (Dir, proplists:get_value (src_dir, Args)),
   Dst    = filename:join (Dir, proplists:get_value (dst_dir, Args)),  
   LogDir = filename:join (Dir, proplists:get_value (log_dir, Args)),
@@ -56,14 +66,20 @@ init (Args) ->
              proplists:get_value (ref, Options) =/= undefined of
           false when Abt == false ->
             % print usage
-            io:format ("Arda lexical compiler server ~p.~p. ~n", [ ?BC_VERSION, ?FC_VERSION ]),
+            Fun =
+              fun ({ L, _ }, Acc) ->
+                acc_debug:sprintf ("~s~s ", [ Acc, L ])
+              end,
+            Languages = lists:foldl (Fun, "", ?languages),
+            io:format ("Arda compiler collection server ~p.~p. ~n", [ ?BC_VERSION, ?FC_VERSION ]),
             io:format ("  Calling format: ~n"),
-            io:format ("  $ als [-a] ~n"),
-            io:format ("  $ als -l <file> [-d <dir>] -r <file> ~n"),
+            io:format ("  $ accs [-a] ~n"),
+            io:format ("  $ accs -l <file> [-d <dir>] [-i <lang>] -r <file> ~n"),
             io:format ("    -a (about)     - author, license, products links.~n"),
             io:format ("    -l (log)       - log file relative to 'log_dir' (see al.app).~n"),
-            io:format ("    -r (reference) - grammar reference relative to <dir> option.~n~n"),
-            io:format ("    -d (dir)       - directory relative to 'ref_dir' (see al.app).~n~n"),
+            io:format ("    -r (reference) - grammar reference relative to <dir> option.~n"),
+            io:format ("    -d (dir)       - directory relative to 'ref_dir' (see al.app).~n"),
+            io:format ("    -i (interface) - interface language: ~s.~n~n", [ Languages ]),
             ignore;
           false when Abt == true ->
             % print about
@@ -72,34 +88,48 @@ init (Args) ->
           true ->
             % start server
             RefSubDir = filename:join (RefDir, proplists:get_value (dir, Options)),
-            Ref = filename:join (RefSubDir, proplists:get_value (ref, Options)),
-            Log = filename:join (LogDir, proplists:get_value (log, Options)),
-            { ok, {{ one_for_one, ?APP_RESTART_COUNT, ?APP_RESTART_INTERVAL }, [
-              { debug,
-                { debug, start_link, [ Log, Levf, Levc ] },
-                transient,
-                ?SRV_SHUTDOWN_TIME,
-                worker,
-                [ debug ] },
-              { lexer,
-                { lexer, start_link, [ Src, Dst, RefSubDir ] },
-                transient,
-                ?SRV_SHUTDOWN_TIME,
-                worker,
-                [ lexer ] },
-              { model,
-                { model, start_link, [] },
-                transient,
-                ?SRV_SHUTDOWN_TIME,
-                worker,
-                [ model ] },
-              { dispatcher,
-                { dispatcher, start_link, [ Ref ] },
-                transient,
-                ?SRV_SHUTDOWN_TIME,
-                worker,
-                [ dispatcher ] }
-          	] }}
+            Ref       = filename:join (RefSubDir, proplists:get_value (ref, Options)),
+            Log       = filename:join (LogDir, proplists:get_value (log, Options)),
+            IfLang    = proplists:get_value (interface, Options, Lang),
+            case proplists:get_value (IfLang, ?languages) of
+              undefined ->
+                io:format ("Arda compiler collection server ~p.~p. ~n", [ ?BC_VERSION, ?FC_VERSION ]),
+                io:format ("! unsupported language: ~s~n~n", [ IfLang ]),
+                ignore;
+              Language ->
+                { ok, {{ one_for_one, ?APP_RESTART_COUNT, ?APP_RESTART_INTERVAL }, [
+                  { acc_debug,
+                    { acc_debug, start_link, [ Log, Levf, Levc, Language ] },
+                    transient,
+                    ?SRV_SHUTDOWN_TIME,
+                    worker,
+                    [ acc_debug ] },
+                  { acc_lexer,
+                    { acc_lexer, start_link, [ Src, Dst, RefSubDir ] },
+                    transient,
+                    ?SRV_SHUTDOWN_TIME,
+                    worker,
+                    [ acc_lexer ] },
+                  { al_model,
+                    { al_model, start_link, [] },
+                    transient,
+                    ?SRV_SHUTDOWN_TIME,
+                    worker,
+                    [ al_model ] },
+                  { as_model,
+                    { as_model, start_link, [] },
+                    transient,
+                    ?SRV_SHUTDOWN_TIME,
+                    worker,
+                    [ as_model ] },
+                  { acc_dispatcher,
+                    { acc_dispatcher, start_link, [ Ref ] },
+                    transient,
+                    ?SRV_SHUTDOWN_TIME,
+                    worker,
+                    [ acc_dispatcher ] }
+              	] }}
+            end
         end
   end.
 
@@ -120,7 +150,10 @@ parse_command_line ([ "-d", Path | Tail ], Acc) ->
 parse_command_line ([ "-a" | Tail ], Acc) ->
   About = proplists:property (about, true),
   parse_command_line (Tail, [ About | Acc ]);
+parse_command_line ([ "-i", Language | Tail ], Acc) ->
+  Interface = proplists:property (interface, Language),
+  parse_command_line (Tail, [ Interface | Acc ]);
 parse_command_line ([ Key | _ ], _Acc) ->
-  io:format ("Arda lexical compiler server ~p.~p. ~n", [ ?BC_VERSION, ?FC_VERSION ]),
+  io:format ("Arda compiler collection server ~p.~p. ~n", [ ?BC_VERSION, ?FC_VERSION ]),
   io:format ("! undefined option: ~p~n~n", [ Key ]),
   error.

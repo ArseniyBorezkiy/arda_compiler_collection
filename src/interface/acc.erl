@@ -3,19 +3,26 @@
 %% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
--module (al).
+-module (acc).
 
-% API
+%
+% api
+%
+
 -export ([
           % external interface
           start/1,
+          make/0,
           % internal callback
           run/3,
           % tools
           about/0
          ]).
 
-% HEADERS
+%
+% headers
+%
+
 -include ("general.hrl").
 
 % =============================================================================
@@ -36,15 +43,17 @@ start ([ Node ]) ->
         Short     = proplists:get_value (short, Args, false),
         About     = proplists:get_value (about, Args, false),
         Minimal   = proplists:get_value (minimal, Args, false),
+        Compile   = proplists:get_value (compile, Args, false),
         case TargetIn  =/= undefined andalso
              TargetOut =/= undefined of
           false when About == false ->
             % print usage
-            io:format ("Arda lexical compiler ~p.~p. ~n", [ ?BC_VERSION, ?FC_VERSION ]),
+            io:format ("Arda compiler collection ~p.~p. ~n", [ ?BC_VERSION, ?FC_VERSION ]),
             io:format ("  Calling format: ~n"),
-            io:format ("  $ al [-a] ~n"),
-            io:format ("  $ al [-l] [-v] [-m] [-d <path>] -i <file> -o <file> ~n"),
+            io:format ("  $ acc [-a] ~n"),
+            io:format ("  $ acc [-c] [-l] [-v] [-m] [-d <path>] -i <file> -o <file> ~n"),
             io:format ("    -a (about)   - author, license, products links.~n"),
+            io:format ("    -c (compile) - compilation only (without script generation).~n"),
             io:format ("    -l (lucky)   - pick random variants for ambiguities.~n"),
             io:format ("    -v (verbose) - include words' additional attributes.~n"),
             io:format ("    -m (minimal) - exclude attributes' names'.~n"),
@@ -70,7 +79,8 @@ start ([ Node ]) ->
             Options = [ { lucky, Lucky },
                         { verbose, Verbose },
                         { short, Short },
-                        { minimal, Minimal } ],
+                        { minimal, Minimal },
+                        { compile, Compile } ],
             case rpc:call (Node, ?MODULE, run, [ FileIn, FileOut, Options ]) of
               ok -> -0;
               error -> -1;
@@ -82,8 +92,12 @@ start ([ Node ]) ->
     end,
   init:stop ().
 
+make () ->
+  systools:make_script ("acc", [ local, no_warn_sasl ]),
+  init:stop ().
+
 about () ->
-  io:format ("Arda lexical compiler ~p.~p. ~n", [ ?BC_VERSION, ?FC_VERSION ]),
+  io:format ("Arda compiler collection ~p.~p. ~n", [ ?BC_VERSION, ?FC_VERSION ]),
   io:format ("  Made by Borezkiy Arseniy Petrovich, 2016. ~n"),
   io:format ("  Redistributable under Lesser General Public License. ~n"),
   io:format ("  Author links: ~n"),
@@ -96,13 +110,16 @@ about () ->
 % =============================================================================
 
 run (TargetIn, TargetOut, Options) ->
-  dispatcher:compile (TargetIn, TargetOut, Options).
+  acc_dispatcher:compile (TargetIn, TargetOut, Options).
 
 % =============================================================================
 % AUXILIARY FUNCTIONS
 % =============================================================================
 
 parse_command_line ([], Acc) -> Acc;
+parse_command_line ([ "-c" | Tail ], Acc) ->
+  Compile = proplists:property (compile, true),
+  parse_command_line (Tail, [ Compile | Acc ]);
 parse_command_line ([ "-l" | Tail ], Acc) ->
   Lucky = proplists:property (lucky, true),
   parse_command_line (Tail, [ Lucky | Acc ]);
@@ -128,6 +145,6 @@ parse_command_line ([ "-a" | Tail ], Acc) ->
   About = proplists:property (about, true),
   parse_command_line (Tail, [ About | Acc ]);
 parse_command_line ([ Key | _ ], _Acc) ->
-  io:format ("Arda lexical compiler ~p.~p. ~n", [ ?BC_VERSION, ?FC_VERSION ]),
+  io:format ("Arda compiler collection ~p.~p. ~n", [ ?BC_VERSION, ?FC_VERSION ]),
   io:format ("! undefined option: ~p~n~n", [ Key ]),
   error.

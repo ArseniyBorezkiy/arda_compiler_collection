@@ -74,20 +74,22 @@
 /*
  * rules
  */
- 
-.match .backward mvb_time_present { /* e.g.                               */
+
+.match .prefix mvb_stem .vocabular voc_verbs { }
+
+.match .postfix mvb_time_present { /* e.g.                               */
   =.           | V.inf.             /* '.' is any phoneme ('etc.tpl.txt') */
   -(a>aa,o>oo) | V.pr.              /* ololo -> ololoo, olala -> olalaa   */
 }
 
-.match .forward mvb_time_past { /* e.g.                               */
+.match .prefix mvb_time_past { /* e.g.                               */
   =.        | V.inf.            /* '.' is any phoneme ('etc.tpl.txt') */
   =~o-(*>o) | V.p.              /* eloloo -> ololoo, ulalaa -> olalaa */
 }
 
-.match .forward m_verb {
-  mvb_time_past stem    | vb. verb
-  stem mvb_time_present | vb. verb
+.match .prefix m_verb {
+  mvb_time_past mvb_stem    | vb. verb
+  mvb_stem mvb_time_present | vb. verb
 }
 
 /*

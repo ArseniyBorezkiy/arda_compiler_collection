@@ -2,10 +2,13 @@
 %% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
--module (dispatcher).
+-module (acc_dispatcher).
 -behaviour (gen_server).
 
-% API
+%
+% api
+%
+
 -export ([
           % management
           start_link/1,
@@ -16,7 +19,10 @@
           process/3
         ]).
 
-% GEN SERVER CALLBACKS
+%
+% gen server callbacks
+%
+
 -export ([
           init/1,
           handle_call/3,
@@ -26,7 +32,16 @@
           code_change/3
         ]).
 
-% STATE
+%
+% headers
+%
+
+-include ("general.hrl").
+
+%
+% basic types
+%
+
 -record (s, { dict :: dict:dict () }).
 
 % =============================================================================
@@ -82,7 +97,7 @@ handle_call ({ compile, FileIn, FileOut, Options }, From, State) ->
 
 handle_cast ({ error, fatal }, State) ->
   % normal shutdown
-  debug:error (?MODULE, "fatal error"),
+  ?d_error (?str_ad_fatal),
   { stop, normal, State }.
 
 handle_info ({ 'DOWN', Ref, process, Pid, Reason }, State) ->
@@ -91,13 +106,13 @@ handle_info ({ 'DOWN', Ref, process, Pid, Reason }, State) ->
   case Reason of
     ok -> gen_server:reply (From, ok);
     error ->
-      debug:warning (?MODULE, "~p error in ~p", [ Name, Pid ]),
+      ?d_warning (?str_ad_compile_error (Name, Pid)),
       gen_server:reply (From, error);
     { error, Error } ->
-      debug:error (?MODULE, "~p error in ~p: ~p", [ Name, Pid, Error ]),
+      ?d_error (?str_ad_runtime_error (Name, Pid, Error)),
       gen_server:reply (From, error);
     { result, Result } ->
-      debug:success (?MODULE, "~p dispatched in ~p", [ Name, Pid ]),
+      ?d_success (?str_ad_dispatched (Name, Pid)),
       gen_server:reply (From, Result)
   end,
   Dict = dict:erase ({ Pid, Ref }, State#s.dict),
@@ -108,40 +123,40 @@ handle_info ({ 'DOWN', Ref, process, Pid, Reason }, State) ->
 % =============================================================================
 
 process (FileIn, FileOut, Options) ->  
-  lexer:register (src, FileIn, FileOut),
-  debug:section (?MODULE, "compiling ~p", [ FileIn ]),
+  acc_lexer:register (src, FileIn, FileOut),
+  ?d_section (?str_ad_compiling (FileIn)),
   Reason =
-    try sentence:compile (Options) of
+    try al_sentence:compile (Options) of
       Result ->
-        debug:success (?MODULE, "compilation finished for ~p", [ FileIn ]),
+        ?d_success (?str_ad_compiled (FileIn)),
         Result
     catch
       throw:_ ->
-        Status = lexer:get_status (),
-        debug:warning (?MODULE, "compilation failed for ~p~n~s", [ FileIn, Status ]),
+        Status = acc_lexer:get_status (),
+        ?d_warning (?str_ad_not_compiled (FileIn, Status)),
         error;
       _:Error ->
-        Status = lexer:get_status (),
+        Status = acc_lexer:get_status (),
         Stack  = erlang:get_stacktrace (),
-        debug:warning (?MODULE, "compilation failed for ~p~n~s", [ FileIn, Status ]),
+        ?d_warning (?str_ad_not_compiled (FileIn, Status)),
         { error, { Error, Stack } }
     after
-      lexer:unregister ()
+      acc_lexer:unregister ()
     end,
   exit (Reason).
 
 load_grammar (File) ->
-  lexer:register (lang, File, File),
-  debug:section (?MODULE, "loading grammar reference: ~p", [ File ]),
-  try language:parse () of
+  acc_lexer:register (lang, File, File),
+  ?d_section (?str_ad_loading (File)),
+  try al_language:parse () of
     _ ->
-      debug:success (?MODULE, "grammar reference loaded: ~p", [ File ]),
+      ?d_success (?str_ad_loaded (File)),
       ok
   catch
     throw:_ ->
-      Status = lexer:get_status (),
-      debug:warning (?MODULE, "error in grammar reference: ~p~n~s", [ File, Status ]),
+      Status = acc_lexer:get_status (),
+      ?d_warning (?str_ad_not_loaded (File, Status)),
       error
   after
-    lexer:unregister ()
+    acc_lexer:unregister ()
   end.

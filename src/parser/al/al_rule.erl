@@ -1,10 +1,14 @@
-%% Match expression analyzer.
+%% @doc Match expression analyzer.
+%% @end
 %% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
--module (rule).
+-module (al_rule).
 
-% API
+%
+% api
+%
+
 -export ([
           parse_forward/1,
           parse_backward/1,
@@ -12,25 +16,22 @@
           get_starts_with/1
         ]).
 
-% HEADERS
--include ("model.hrl").
+%
+% headers
+%
+
 -include ("general.hrl").
+-include ("l-model.hrl").
 
 % =============================================================================
 % API
 % =============================================================================
 
 parse_forward (Rule) ->
-  case do_parse_forward (Rule, none, []) of
-    error -> throw (error);
-    Filters -> Filters
-  end.
+  do_parse_forward (Rule, none, []).
 
 parse_backward (Rule) ->
-  case do_parse_backward (Rule, none, []) of
-    error -> throw (error);
-    Filters -> Filters
-  end.
+  do_parse_backward (Rule, none, []).
 
 match (Word, Filters) ->
   PosBeg = 1,
@@ -46,7 +47,7 @@ do_match ([ Filter | Tail ], Word1, Pos1, Acc1) ->
     true  -> false;
     false ->
       case Filter (Word1, Acc1, Pos1) of
-        error -> throw (error);
+        error -> throw (?e_error);
         false -> false;
         { Word2, Acc2, Pos2 } ->
           do_match (Tail, Word2, Pos2, Acc2)
@@ -155,13 +156,13 @@ do_parse_forward ([ { Cmp } | Rule ], Mode, Acc)
   % { ?X, Y, P } -> { ?X, Y?, P + length (?) }
   % { ?X, Y, P } -> { X, Y?, P }
   case get_starts_with (Rule) of
-    { { ?ET_ALPHABET, Alphabet, WildcardLen }, Genealogist } ->
-      Phonemes = model:get_recursive_properties ([ Alphabet ], Genealogist),
+    { ?ET_ALPHABET = Type, Alphabet, WildcardLen } ->
+      Phonemes = al_model:get_recursive_properties (Alphabet, Type, members),
       Fun =
         fun (W, V, P) ->
           Wp = string:substr (W, P),
           Filter =
-            fun (#property { name = Ph }) ->
+            fun ({ Ph, _ }) ->
               case Cmp (true, true) of
                 true ->
                   case string:str (Wp, Ph) of
@@ -191,24 +192,21 @@ do_parse_forward ([ { Cmp } | Rule ], Mode, Acc)
           end
         end,
       do_parse_forward (lists:nthtail (WildcardLen, Rule), Mode, [ Fun | Acc ]);
-    { { ?ET_MUTATION, Mutation, WildcardLen }, Genealogist } ->
+    { ?ET_MUTATION = Type, Mutation, WildcardLen } ->
       case Cmp (true, true) of
         true ->
-          Maps = model:get_recursive_properties ([ Mutation ], Genealogist), 
-          Fun =
+          Maps = al_model:get_recursive_properties (Mutation, Type, members),
+          Fun  =
             fun (W, V, P) ->
               Filter =
-                fun
-                  (#property { name = ?UPREFIX (Prefix, PhSrc), value = PhDst })
-                    when Prefix == Mutation ->
-                    case string:str (W, PhSrc) of
-                      1 -> { true, { PhSrc, PhDst } };
-                      _ -> false
-                    end;
-                   (_) -> false
+                fun ({ PhSrc, _ }) ->
+                  case string:str (W, PhSrc) of
+                    1 -> true;
+                    _ -> false
+                  end
                 end,
               Sort = fun ({ Ph1, _ }, { Ph2, _ }) -> length (Ph1) > length (Ph2) end,
-              case lists:sort (Sort, lists:filtermap (Filter, Maps)) of
+              case lists:sort (Sort, lists:filter (Filter, Maps)) of
                 [] -> false;
                 [ { PhSrc, PhDst } | _ ] ->
                   PhSrcLen = length (PhSrc),
@@ -223,17 +221,17 @@ do_parse_forward ([ { Cmp } | Rule ], Mode, Acc)
             end,
           do_parse_forward (lists:nthtail (WildcardLen, Rule), Mode, [ Fun | Acc ]);
         false ->
-          debug:warning (?MODULE, "mutation negotiations unsupported in subrule ~p", [ Rule ]),
-          error
+          ?d_warning (?str_lrule_umne (Rule)),
+          throw (?e_error)
       end;
     error ->
-      debug:warning (?MODULE, "unknown wildcard in rule '~p'", [ Rule ]),
-      error
+      ?d_warning (?str_lrule_uwildcard (Rule)),
+      throw (?e_error)
   end;
 
 do_parse_forward ([ { _ } | Rule ], none, _Acc) ->
-  debug:warning (?MODULE, "expected mode for forward subrule ~p", [ Rule ]),
-  error;
+  ?d_warning (?str_lrule_efmode (Rule)),
+  throw (?e_error);
 
 do_parse_forward ([ Ch | Tail ], Mode, Acc) ->
   Equ = fun (Ch1, Ch2) -> Ch1 =:= Ch2 end,
@@ -334,14 +332,14 @@ do_parse_backward ([ { Cmp } | Rule ], Mode, Acc)
   % { X?, Y, P } -> { X?, ?Y, P + length (?) }
   % { X?, Y, P } -> { X, ?Y, P }
   case get_starts_with (Rule) of
-    { { ?ET_ALPHABET, Alphabet, WildcardLen }, Genealogist } ->            
-      Phonemes = model:get_recursive_properties ([ Alphabet ], Genealogist),
+    { ?ET_ALPHABET = Type, Alphabet, WildcardLen } ->            
+      Phonemes = al_model:get_recursive_properties (Alphabet, Type, members),
       Fun =
         fun (W, V, P) ->
           Pn = length (W) - P + 1,
           Wp = string:substr (W, 1, Pn),
           Filter =
-            fun (#property { name = Ph }) ->
+            fun ({ Ph, _ }) ->
               Pos = length (Wp) - length (Ph) + 1,
               case Cmp (true, true) of
                 true ->
@@ -371,25 +369,22 @@ do_parse_backward ([ { Cmp } | Rule ], Mode, Acc)
           end
         end,
       do_parse_backward (lists:nthtail (WildcardLen, Rule), Mode, [ Fun | Acc ]);
-    { { ?ET_MUTATION, Mutation, WildcardLen }, Genealogist } ->
+    { ?ET_MUTATION = Type, Mutation, WildcardLen } ->
       case Cmp (true, true) of
         true ->
-          Maps = model:get_recursive_properties ([ Mutation ], Genealogist), 
-          Fun =
+          Maps = al_model:get_recursive_properties (Mutation, Type, members),
+          Fun  =
             fun (W, V, P) ->
               Filter =
-                fun
-                  (#property { name = ?UPREFIX (Prefix, PhSrc), value = PhDst })
-                    when Prefix == Mutation ->                   
-                    Pos = length (W) - length (PhSrc) + 1,
-                    case string:rstr (W, PhSrc) of
-                      Pos when Pos > 0 -> { true, { PhSrc, PhDst } };
-                      _ -> false
-                    end;
-                  (_) -> false
+                fun ({ PhSrc, _ }) ->                   
+                  Pos = length (W) - length (PhSrc) + 1,
+                  case string:rstr (W, PhSrc) of
+                    Pos when Pos > 0 -> true;
+                    _ -> false
+                  end
                 end,
               Sort = fun ({ Ph1, _ }, { Ph2, _ }) -> length (Ph1) > length (Ph2) end,
-              case lists:sort (Sort, lists:filtermap (Filter, Maps)) of
+              case lists:sort (Sort, lists:filter (Filter, Maps)) of
                 [] -> false;
                 [ { PhSrc, PhDst } | _ ] ->              
                   PhSrcLen = length (PhSrc),
@@ -404,17 +399,17 @@ do_parse_backward ([ { Cmp } | Rule ], Mode, Acc)
             end,
           do_parse_backward (lists:nthtail (WildcardLen, Rule), Mode, [ Fun | Acc ]);
         false ->
-          debug:warning (?MODULE, "mutation negotiations unsupported in subrule ~p", [ Rule ]),
-          error
+          ?d_warning (?str_lrule_umne (Rule)),
+          throw (?e_error)
       end;
     error ->
-      debug:warning (?MODULE, "unknown wildcard in rule '~p'", [ Rule ]),
-      error
+      ?d_warning (?str_lrule_uwildcard (Rule)),
+      throw (?e_error)
   end;
 
 do_parse_backward ([ { _ } | Rule ], none, _Acc) ->
-  debug:warning (?MODULE, "expected mode for backward subrule ~p", [ Rule ]),
-  error;
+  ?d_warning (?str_lrule_ebmode (Rule)),
+  throw (?e_error);
 
 do_parse_backward ([ Ch | Tail ], Mode, Acc) ->
   Equ = fun (Ch1, Ch2) -> Ch1 =:= Ch2 end,
@@ -426,34 +421,22 @@ do_parse_backward ([ Ch | Tail ], Mode, Acc) ->
 
 get_starts_with (Rule) ->
   Filter =
-      fun
-        (#entity { name = ?UPREFIX (Wildcard, Name), type = Type, tag = Tag })
-          when Type == ?ET_ALPHABET orelse Type == ?ET_MUTATION ->
-          case proplists:get_value (wildcard, Tag) of
-            undefined -> false;
-            Wildcard  ->
-              case string:str (Rule, Wildcard) of
-                1 when Type == ?ET_ALPHABET -> { true, { Type, Name, length (Wildcard) } };
-                1 when Type == ?ET_MUTATION -> { true, { Type, Name, length (Wildcard) } };
-                _ -> false
-              end
-          end;
-         (_) -> false
-      end,
-  case lists:filtermap (Filter, model:get_entities ()) of
-    [ Result ] ->
-      Genealogist =
-        fun (#entity { tag = Tag }) ->
-          case proplists:get_value (base, Tag) of
-            undefined -> false;
-            NextNames -> { true, NextNames }
-          end
-        end,
-      { Result, Genealogist };
+    fun (#gas_entry { k = #entity_k { name = Wildcard },
+                      v = #entity_v { properties = Props }}) ->
+      Name = proplists:get_value (target_name, Props),
+      Type = proplists:get_value (target_type, Props),
+      case string:str (Rule, Wildcard) of
+        1 -> { true, { Type, Name, length (Wildcard) } };
+        _ -> false
+      end
+    end,
+  Entries = al_model:select_entities ('_', ?ET_WILDCARD),
+  case lists:filtermap (Filter, Entries) of
+    [ Result ] -> Result;
     [] ->
-      debug:warning (?MODULE, "unknown mask ~p", [ Rule ]),
+      ?d_warning (?str_lrule_umask (Rule)),
       error;
     _ ->
-      debug:warning (?MODULE, "ambiguity mask for ~p", [ Rule ]),
+      ?d_warning (?str_lrule_amask (Rule)),
       error
   end.

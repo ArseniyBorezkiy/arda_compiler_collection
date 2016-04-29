@@ -1,28 +1,36 @@
-%% @doc Output format description.
+%% @doc Dynamically described model's vocabulary module.
 %% @end
 %% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
--ifndef (__OUTPUT_HRL__).
--define (__OUTPUT_HRL__, ok).
+-ifndef (__AM_VOC_HRL__).
+-define (__AM_VOC_HRL__, ok).
 
-% HEADERS
--include ("general.hrl").
+%
+% headers
+%
+
+-include ("am_lrule.hrl").
 
 % =============================================================================
 % TYPES DEFINITION
 % =============================================================================
 
--record (word, { oid    :: list (unsigned_t ()),
-                 guards :: list (string ()),
-                 route  :: list ({ string (), string () }),
-                 stem   :: string (),
-                 class  :: string () }).
+%
+% basic types
+%
 
--type word_t () :: # word { } .
+-record (stem_k, { voc  :: string (),
+                   stem :: string () }).
+
+-type stem_k_t () :: # stem_k { } .
+
+-record (stem_v, { guards :: list (guard_v_t ()) }).
+
+-type stem_v_t () :: # stem_v { } .
 
 % =============================================================================
-% CONSTANTS
+% END
 % =============================================================================
 
--endif. % __OUTPUT_HRL__
+-endif. % __AM_VOC_HRL__

@@ -3,15 +3,24 @@
 %% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
--module (gen_lexer).
+-module (gen_acc_lexer).
 -behaviour (gen_server).
 
-% API
+%
+% callbacks
+%
+
+-callback error (pid (), string ()) -> ok .
+-callback success (pid ()) -> ok .
+
+%
+% api
+%
+
 -export ([
           % management
           start_link/2,
           stop/1,
-          behaviour_info/1,
           get_status/2,
           % payload
           include_file/3,
@@ -20,7 +29,10 @@
           next_token/1
          ]).
 
-% GEN SERVER CALLBACKS
+%
+% gen server callbacks
+%
+
 -export ([
           init/1,
           handle_call/3,
@@ -30,11 +42,17 @@
           code_change/3
          ]).
 
-% HEADERS
+%
+% headers
+%
+
 -include ("general.hrl").
 -include ("token.hrl").
 
-% STATE
+%
+% basic types
+%
+
 -record (file_entry, { dir         :: string (),
                        name        :: string (),
                        handle      :: io_device_t (),
@@ -68,12 +86,6 @@ start_link (Server, Module) ->
 
 stop (Server) ->
   gen_server:stop (Server).
-
-behaviour_info (callbacks) ->
-  [ { error, 2 },
-    { success, 1 } ];
-
-behaviour_info (_) -> undefined.
 
 get_status (Server, Variant)
   when Variant == summary ; Variant == report ->
@@ -138,7 +150,8 @@ code_change (_, State, _) ->
 
 handle_call ({ get_status, Variant }, _, State) ->
   case State#s.entries of
-    [] -> { reply, "end of text", State };
+    [] ->
+      { reply, ?text (?str_gal_eot), State };
     [ Active | _ ] ->
       Dir    = Active#file_entry.dir,
       Name   = Active#file_entry.name,
@@ -147,20 +160,18 @@ handle_call ({ get_status, Variant }, _, State) ->
       { Status, Error } =
         case State#s.status of
           ok -> { "", "" };
-          { error, Message }  -> { "error ", format ("~n" ++ Message, []) }
+          { error, Message }  ->
+            Status0 = ?text (?str_gal_error ()),
+            { Status0, format ("~n" ++ Message, []) }
         end,
       Result =
         case Variant of
           summary ->
-            Format = "~sin ~s (line: ~p, column: ~p)~n",
-            Args   = [ Status, Name, Line, Column ],
-            format (Format, Args);
+            ?text (?str_gal_location (Status, Name, Line, Column));
           report ->
-            Format = "~sin ~s (line: ~p, column: ~p)~n"
-                     "dir: ~s"
-                     "~s",
-            Args   = [ Status, Name, Line, Column, Dir, Error ],
-            format (Format, Args)
+            Text1 = ?text (?str_gal_location (Status, Name, Line, Column)),
+            Text2 = ?text (?str_gal_dir (Dir)),
+            format ("~s~s~s", [ Text1, Text2, Error ])
         end,
       { reply, Result, State }
   end;
@@ -194,11 +205,11 @@ handle_call ({ token, next }, _, State) ->
           { eof, Token, Type } ->
             { { Type, Token }, State#s { entries = Tail } };
           { error, ambiguity } ->
-            Error = format ("splitters ambiguity ~p", [ Splitters ]),
+            Error = ?text (?str_gal_sambiguity (Splitters)),
             Module:error (State#s.server, Error),
             { eot, State#s { status = { error, Error } } };
           { error, file } ->
-            Error = format ("can not read from stream", []),
+            Error = ?text (?str_gal_notreadable),
             Module:error (State#s.server, Error),
             { eot, State#s { status = { error, Error } } }
         end
@@ -212,8 +223,7 @@ handle_cast ({ token, load, Token, Type }, State) ->
       ets:insert (Table, { Token, Type }),
       { noreply, State };
     [ { Token, OtherType } | _ ] ->
-      Format = "token redefinition ~p of type ~p to type ~p",
-      Error  = format (Format, [ Token, Type, OtherType ]),
+      Error  = ?text (?str_gal_tredefine (Token, Type, OtherType)),
       Module = State#s.module,
       Module:error (State#s.server, Error),
       { noreply, State }
@@ -223,8 +233,7 @@ handle_cast ({ token, reset, Token, Type }, State) ->
   Table = State#s.table,
   case ets:lookup (Table, Token) of
     [] ->
-      Format = "token ~p of type ~p not found to be reset",
-      Error  = format (Format, [ Token, Type ]),
+      Error  = ?text (?str_gal_uresetable (Token, Type)),
       Module = State#s.module,
       Module:error (State#s.server, Error),      
       { noreply, State };
@@ -232,8 +241,7 @@ handle_cast ({ token, reset, Token, Type }, State) ->
       ets:delete (Table, Token),
       { noreply, State };
     [ { Token, OtherType } | _ ] ->
-      Format = "token ~p of type ~p to be reset cause has type ~p",
-      Error  = format (Format, [ Token, Type, OtherType ]),
+      Error  = ?text (?str_gal_uresetable_ex (Token, Type, OtherType)),
       Module = State#s.module,
       Module:error (State#s.server, Error), 
       { noreply, State }
@@ -245,8 +253,7 @@ handle_cast ({ include, Dir, Name }, State) ->
     case file:open (File, [ read ]) of
       { ok, IoDevice } -> { IoDevice, State#s.status };
       _ ->
-        Format = "can not open file: ~p",
-        Error  = format (Format, [ File ]),
+        Error  = ?text (?str_gal_nofile (File)),
         Module = State#s.module,
         Module:error (State#s.server, Error),
         { undefined, { error, Error } }

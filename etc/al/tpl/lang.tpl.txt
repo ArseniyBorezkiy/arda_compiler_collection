@@ -88,7 +88,7 @@
  *
  */
 
-.vocabular stem
+
 
 /*
  * Before definitions of how words should be recognized you must specify
@@ -135,8 +135,7 @@
  *                 not will be appeared in the output generated files if the
  *                 'short' compiler flag specified.
  */
-  
-  
+
 .include "etc.tpl.txt" /* alphabet, mutations, global wildcards */
 .include "adj.tpl.txt"
 .include "noun.tpl.txt"
@@ -166,7 +165,7 @@
  *   ...  - and so on.
  */
 
-.match .forward main {
+.match .prefix main {
   m_adjective /* see adj.tpl.txt  */
   m_noun      /* see noun.tpl.txt */
   m_verb      /* see verb.tpl.txt */

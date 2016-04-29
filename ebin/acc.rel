@@ -1,0 +1,6 @@
+{ release,
+  { "acc release", "1.0" },
+  { erts, "7.3" },
+  [ { kernel, "4.2" },
+    { stdlib, "2.8" },
+    { acc, "1.0" } ] }.

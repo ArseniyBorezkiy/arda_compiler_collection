@@ -1,31 +1,20 @@
-%% @doc Token types.
+%% @doc Lexical token types.
 %% @end
 %% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
--ifndef (__TOKEN_HRL__).
--define (__TOKEN_HRL__, ok).
+-ifndef (__L_TOKEN_HRL__).
+-define (__L_TOKEN_HRL__, ok).
+
+%
+% headers
+%
+
+-include ("token.hrl").
 
 % =============================================================================
-% CONSTANTS
+% DEFINITIONS
 % =============================================================================
-
-%
-% general token types
-%
-
--define (TT_SEPARATOR, separator).
--define (TT_DEFAULT,   default).
--define (TT_STRING,    string).
--define (TT_EOT,       eot).
--define (TT_BREAK,     break).
-
-%
-% user token types
-%
-
--define (TT_COMMENT_BEGIN, comment_begin).
--define (TT_COMMENT_END,   comment_end).
 
 -define (TT_SECTION,       section).
 -define (TT_CONTENT_BEGIN, content_begin).
@@ -45,4 +34,8 @@
 -define (TT_WILDCARD,      wildcard).
 -define (TT_PHONEME,       phoneme).
 
--endif. % __TOKEN_HRL__
+%
+% end
+%
+
+-endif. % __L_TOKEN_HRL__

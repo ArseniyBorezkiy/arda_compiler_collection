@@ -56,18 +56,20 @@
  * rules
  */
 
-.match .forward mn_vowel_left {
+.match .prefix mn_stem .vocabular voc_nouns { }
+
+.match .prefix mn_vowel_left {
   =##
   =#+* mn_vowel_left
 }
 
-.match .backward mn_vowel_right {
+.match .postfix mn_vowel_right {
   =##
   mn_vowel_right +*=#
 }
 
-.match .forward m_noun {
-  mn_vowel_left stem mn_vowel_right | n. noun
+.match .prefix m_noun {
+  mn_vowel_left mn_stem mn_vowel_right | n. noun
 }
 
 /*

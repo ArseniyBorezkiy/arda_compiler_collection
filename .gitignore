@@ -1,4 +1,7 @@
 /ebin/*.beam
+/ebin/*.boot
+/ebin/*.script
+/var/tmp/*
 *.out.txt
 *.log
 *.dump

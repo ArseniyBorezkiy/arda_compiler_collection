@@ -95,8 +95,10 @@
 /*
  * rules
  */
- 
-.match .backward ma_number {        /* e.g.             */
+
+.match .prefix ma_stem .vocabular voc_adjectives { }
+
+.match .postfix ma_number {         /* e.g.             */
   =#          | A.sg. AD.C          /* al       -> al   */
   =*          | A.sg. AD.V          /* lo       -> lo   */
   =#+a        | A.pl. AD.C A.no.    /* ola      -> ol   */
@@ -104,14 +106,14 @@
   =*+lolo     | A.pl. AD.V ~ A.no.  /* allololo -> allo */
 }
 
-.match .forward ma_degree { /* e.g.                                        */
+.match .prefix ma_degree {  /* e.g.                                        */
   +al  | A.sup.             /* allo -> lo, alol -> ol                      */
   +@-# | A.cmp.             /* ulo  -> lo                                  */
   =.   | ~ A.sup. ~ A.cmp.  /* '.' is any phoneme wildcard ('etc.tpl.txt') */
 }
 
-.match .forward m_adjective {
-  ma_degree stem ma_number | adj. adjective
+.match .prefix m_adjective {
+  ma_degree ma_stem ma_number | adj. adjective
 }
 
 /*
