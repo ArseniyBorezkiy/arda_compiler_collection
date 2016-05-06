@@ -51,24 +51,41 @@
  *
  * Thus lets describe matching rules for 'lol' noun.
  */
+
+.vocabulary voc_nouns ; /* preemptive declaration, see 'voc.tpl.txt' */
+.vocabular .inward mn_stem voc_nouns
  
+/*
+ * Before definitions of how words should be recognized you can specify
+ * phony rule that is equivalent to match word from specified vocabulary.
+ * It is means that the rest of the word would be matched at the specified in
+ * the match section order (order depends on the position and the direction,
+ * see match specification for more details).
+ *
+ *   .vocabular   <direction> <rule> <dictionary> /* 1 */
+ *   .vocabular-l <direction> <rule> <dictionary> /* 2 */
+ *   .vocabular-r <direction> <rule> <dictionary> /* 3 */
+ *
+ * The first variant is used for exact matches (whole rest of the word).
+ * The second - for left end subrest matches.
+ * The third - for right end subrest matches.
+ */
+
 /*
  * rules
  */
 
-.match .prefix mn_stem .vocabular voc_nouns { }
-
-.match .prefix mn_vowel_left {
+.match .forward mn_vowel_left {
   =##
   =#+* mn_vowel_left
 }
 
-.match .postfix mn_vowel_right {
+.match .backward mn_vowel_right {
   =##
   mn_vowel_right +*=#
 }
 
-.match .prefix m_noun {
+.match .inward-void m_noun {
   mn_vowel_left mn_stem mn_vowel_right | n. noun
 }
 

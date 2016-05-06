@@ -1,0 +1,42 @@
+/*
+ * Lingua Latina grammar reference.
+ * Borezkiy Arseniy Petrovich.
+ */
+ 
+.global /* voc.lat */
+
+.language latina 1 100
+.compiler 1 0
+
+/* ========================
+ * LINGUA LATINA VOCABULARY
+ * ======================== */
+
+/*
+ * verbs
+ */
+
+.vocabulary voc_verbs {
+  clama     | VB.A
+  expedi    | VB.I
+  scrib     | VB.U VS.if.
+  scrips    | VB.U VS.pf.
+  script    | VB.U VS.sup.
+  tace      | VB.E VS.if.
+  tacu      | VB.E VS.pf.
+  tacit     | VB.E VS.sup.
+}
+
+/*
+ * adjectives
+ */
+ 
+.vocabulary voc_adjectives {
+}
+
+/*
+ * nouns
+ */
+ 
+.vocabulary voc_nouns {
+}

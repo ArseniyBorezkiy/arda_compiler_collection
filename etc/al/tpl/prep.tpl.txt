@@ -1,0 +1,84 @@
+/*
+ * Template for your own grammar reference.
+ * Your full name here.
+ *
+ * This is the preposition definition file.
+ */
+
+.module /* prep.tpl */
+
+/*
+ * '.module' directive defines local wildcard scope. Any wildcard defined in
+ * this section will be forgotten when next '.module' directive meets.
+ */
+ 
+.language my 1 100 /* see 'lang.tpl.txt' file for details */
+.compiler 1 0      /* see 'lang.tpl.txt' file for details */
+
+/* =====================
+ * NOUN CLASS DEFINITION
+ * ===================== */
+ 
+/*
+ * class implementation
+ */
+ 
+.class preposition {
+  pars_orationis
+}
+
+/*
+ * The classes are sets of the attributes.
+ * One attribute can be shared in many classes.
+ * But rule matching stops immediatelly if the not shared attributes
+ * from different classes meets or class ambiguity meets.
+ *
+ *   .class <name> {
+ *     <member>
+ *     ...
+ *   }
+ *
+ *   Where:
+ *     <name>   - Unique name of the class.
+ *     <member> - Attribute name.
+ */
+ 
+/*
+ * It's time to introduce your experimental 'lol' language.
+ * The 'lol' language has only two preposition: 'ao' and 'oa'.
+ * But there are small assumption: adjacent prepositions can be concatenated.
+ *
+ * Thus lets describe matching rules for 'lol' prepositions.
+ */
+
+/*
+ * wildcards
+ */
+ 
+.wildcard 0 .eow /* end of the word */
+ 
+/*
+ * declarations
+ */
+
+.match .inward-void m_prep ;
+
+.vocabulary voc_prepositions ;
+
+/*
+ * rules
+ */
+ 
+.match .forward mp_prep .vocabular voc_prepositions {
+  +@@=0
+  +@@ m_prep
+}
+
+.match .inward-void m_prep {
+  mp_prep | p. preposition
+}
+
+/*
+ * Match specification is the powerful easy mechanism for words recognision.
+ * For details see 'adj.tpl.txt' and 'verb.tpl.txt' files.
+ */

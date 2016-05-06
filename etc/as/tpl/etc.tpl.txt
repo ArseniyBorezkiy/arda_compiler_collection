@@ -1,0 +1,17 @@
+/*
+ * Template for your own grammar reference.
+ * Your full name here.
+ *
+ * This is the ? definition file.
+ * Should be included at first.
+ */
+ 
+.global /* etc.tpl */ /* discussed in al */
+ 
+.language my 1 100 /* discussed in al */
+.compiler 1 0      /* discussed in al */
+
+/* ========================
+ * YOUR ?        DEFINITION
+ * ======================== */
+ 

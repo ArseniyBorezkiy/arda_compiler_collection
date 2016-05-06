@@ -70,24 +70,41 @@
  *
  * Thus lets describe matching rules for 'lol' verbs.
  */
+
+.vocabulary voc_verbs ; /* preemptive declaration, see 'voc.tpl.txt' */
+.vocabular .inward mvb_stem voc_verbs
  
+/*
+ * Before definitions of how words should be recognized you can specify
+ * phony rule that is equivalent to match word from specified vocabulary.
+ * It is means that the rest of the word would be matched at the specified in
+ * the match section order (order depends on the position and the direction,
+ * see match specification for more details).
+ *
+ *   .vocabular   <direction> <rule> <dictionary> /* 1 */
+ *   .vocabular-l <direction> <rule> <dictionary> /* 2 */
+ *   .vocabular-r <direction> <rule> <dictionary> /* 3 */
+ *
+ * The first variant is used for exact matches (whole rest of the word).
+ * The second - for left end subrest matches.
+ * The third - for right end subrest matches.
+ */
+
 /*
  * rules
  */
 
-.match .prefix mvb_stem .vocabular voc_verbs { }
-
-.match .postfix mvb_time_present { /* e.g.                               */
+.match .backward mvb_time_present { /* e.g.                               */
   =.           | V.inf.             /* '.' is any phoneme ('etc.tpl.txt') */
   -(a>aa,o>oo) | V.pr.              /* ololo -> ololoo, olala -> olalaa   */
 }
 
-.match .prefix mvb_time_past { /* e.g.                               */
+.match .forward mvb_time_past { /* e.g.                               */
   =.        | V.inf.            /* '.' is any phoneme ('etc.tpl.txt') */
   =~o-(*>o) | V.p.              /* eloloo -> ololoo, ulalaa -> olalaa */
 }
 
-.match .prefix m_verb {
+.match .inward-void m_verb {
   mvb_time_past mvb_stem    | vb. verb
   mvb_stem mvb_time_present | vb. verb
 }

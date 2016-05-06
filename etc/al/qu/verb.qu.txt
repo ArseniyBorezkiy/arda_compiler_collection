@@ -94,12 +94,53 @@
   avb_conjugation
   avb_prefix
 }
+ 
+/*
+ * reflections
+ */
+ 
+.mutation fvb_denfiction {
+  /* simple */
+  nt  = t
+  mp  = p
+  nc  = c
+  /* nasal */
+  mn  = m
+  nn  = n
+  rn  = n
+  ll  = l
+}
+
+.reflection fvb_shortify_vowel {
+  aa  = a
+  ee  = e
+  ii  = i
+  oo  = o
+  uu  = u
+}
+
+.mutation fvb_append_vovel_a { VOID += a }
+.mutation fvb_append_vovel_u { VOID += u }
+
+/*
+ * wildcards
+ */
+
+.wildcard (#n>#) fvb_denfiction
+.wildcard (^>*) fvb_shortify_vowel
+.wildcard (+a) fvb_append_vovel_a
+.wildcard (+u) fvb_append_vovel_u
 
 /*
  * rules
  */
- 
-.match mvb_long_subject {
+
+.vocabulary voc_verbs ;
+.vocabular .inward mvb_stem voc_verbs
+
+/* verb engings */
+
+.match .backward mvb_long_subject {
   +nye  | V.1p.sg.s.
   +tye  | V.2ip.sg.s.
   +lye  | V.2fp.sg.s.
@@ -114,13 +155,13 @@
   +nte  | V.3p.pl.s.
 }
 
-.match mvb_short_subject {
+.match .backward mvb_short_subject {
   +n | V.1p.sg.s.
   +t | V.2ip.sg.s.
   +l | V.2fp.sg.s.
 }
 
-.match mvb_object {
+.match .backward mvb_object {
   +n | V.1p.sg.o.
   +t | V.2ip.sg.o.
   +l | V.2fp.sg.o.
@@ -128,75 +169,73 @@
   +t | V.3p.pl.o.
 }
 
-.match mvb_time {
-  /* A conjugation */
-  +a      | VC.A V.inf.
-  +a      | VC.A V.aor.
-  +a      | VC.A V.imp.
-  +ea     | VC.A V.pr.   V.st.l.w.
-  +ane    | VC.A V.p.
-  +uva    | VC.A V.f.
-  +ie     | VC.A V.pfct. V.st.l.w.
-  +umne   | VC.A V.paf.
-  /* Basic conjugation */
-  +e      | VC.B V.inf.  V.end.no.
-  +ita    | VC.B V.inf.  V.end.
-  +e      | VC.B V.aor.  V.end.no.
-  +i      | VC.B V.aor.  V.end.
-  +e      | VC.B V.imp.
-  +a      | VC.B V.imp.
-  +a      | VC.B V.pr.   V.st.l.w.
-  +mne    | VC.B V.p.    V.fxn.no. .rappend(.next, m)
-  +nne    | VC.B V.p.    V.fxn.no. .rappend(.next, n)
-  +rne    | VC.B V.p.    V.fxn.no. .rappend(.next, r)
-  +lle    | VC.B V.p.    V.fxn.no. .rappend(.next, l)
-  -#N+e   | VC.B V.p.    V.fxn.    .rcast(1, .next, denasaled_consonant)
-  +uva    | VC.B V.f.
-  +ie     | VC.B V.pfct. V.st.l.w.
-  +umne   | VC.B V.paf.
-  /* U conjugation */
-  +o      | VC.U V.inf.
-  -#+we   | VC.U V.aor.  V.end.no.
-  -*+ue   | VC.U V.aor.  V.end.no.
-  -#+wi   | VC.U V.aor.  V.end.
-  -*+ui   | VC.U V.aor.  V.end.
-  -#+wa   | VC.U V.pr.   V.st.l.w.
-  -*+ua   | VC.U V.pr.   V.st.l.w.
-  +une    | VC.U V.p.
-  +uva    | VC.U V.f.
-  +uuva   | VC.U V.f.
-  -#+wie  | VC.U V.pfct. V.st.l.w.
-  -*+ie   | VC.U V.pfct. V.st.l.w.
-}
-
-.match mvb_augment {
-  +@ | V.aug. V.aug.sep.
-  +^ | V.aug. V.aug.fus.
-  -  | V.aug.no.
-}
-
-.match mvb_endings {
+.match .backward mvb_endings {
   mvb_long_subject mvb_object | V.end.
   mvb_short_subject           | V.end.
-  =                           | V.end.no.
+  =.                          | V.end.no.
 }
 
-.match mvb_steam {
-  +#@-   | V.aug.sep. V.st.s.w.                      .vocabular(vb., vb_steam))
-  +#^-   | V.aug.sep. V.st.l.w.                      .vocabular(vb., .lcast(2, vb_steam, short_vowel)))
-  +@-    | V.aug.no.  V.st.s.w.                      .vocabular(vb., vb_steam))
-  +^-    | V.aug.no.  V.st.l.w.                      .vocabular(vb., .lcast(1, vb_steam, short_vowel)))
-  -^+-   | V.aug.     V.pfx.no. V.aug.fus. V.st.s.w. .vocabular(vb., .lcast(1, vb_steam, short_vowel)))
+/* verb time */
+
+.match .backward mvb_time {
+  /* A conjugation */
+  -a          | VC.A V.inf.            V.aug.no.
+  -a          | VC.A V.aor.            V.aug.no.
+  -a          | VC.A V.imp.            V.aug.no.
+  =(+a)+ea    | VC.A V.pr.   V.st.l.w. V.aug.no.
+  =a+ne       | VC.A V.p.              V.aug.no.
+  =(+a)+uva   | VC.A V.f.              V.aug.no.
+  =(+a)+ie    | VC.A V.pfct. V.st.l.w. V.aug.
+  =(+a)+umne  | VC.A V.paf.            V.aug.no.
+  /* Basic conjugation */
+  +e          | VC.B V.inf.  V.end.no. V.aug.no.
+  +ita        | VC.B V.inf.  V.end.    V.aug.no.
+  +e          | VC.B V.aor.  V.end.no. V.aug.no.
+  +i          | VC.B V.aor.  V.end.    V.aug.no.
+  +e          | VC.B V.imp.            V.aug.no.
+  +a          | VC.B V.imp.            V.aug.no.
+  +a          | VC.B V.pr.   V.st.l.w. V.aug.no.
+  -(#n>#)+e   | VC.B V.p.              V.aug.no.
+  +uva        | VC.B V.f.              V.aug.no.
+  +ie         | VC.B V.pfct. V.st.l.w. V.aug.
+  +umne       | VC.B V.paf.            V.aug.no.
+  /* U conjugation */
+  =(+u)+o     | VC.U V.inf.            V.aug.no.
+  =(+u)+we    | VC.U V.aor.  V.end.no. V.aug.no.
+  -u+e        | VC.U V.aor.  V.end.no. V.aug.no.
+  =(+u)+wi    | VC.U V.aor.  V.end.    V.aug.no.
+  -u+i        | VC.U V.aor.  V.end.    V.aug.no.
+  =(+u)+wa    | VC.U V.pr.   V.st.l.w. V.aug.no.
+  -u+a        | VC.U V.pr.   V.st.l.w. V.aug.no.
+  -u+ne       | VC.U V.p.              V.aug.no.
+  -u+va       | VC.U V.f.              V.aug.no.
+  -u+uva      | VC.U V.f.              V.aug.no.
+  =(+u)+wie   | VC.U V.pfct. V.st.l.w. V.aug.
+  -u+ie       | VC.U V.pfct. V.st.l.w. V.aug.
 }
 
-.match mvb_prefix {
-  +-     | V.pfx.   V.aug.no.             .vocabular(pr., vb_prefix)
-  +#-    | V.pfx.   V.aug.sep.            .vocabular(pr., vb_prefix)
-  +*-    | V.pfx.   V.aug.no.             .vocabular(pr., vb_prefix)
-  -^+-   | V.pfx.   V.aug.     V.aug.fus. .vocabular(pr., .lcast(1, vb_prefix, short_vowel))
-  -      | V.pfx.no.
+/* verb stem vowel */
+
+.match .forward mvb_stem_vowel {
+  =#-@     | V.aug.    V.st.s.w.
+  =#-(^>*) | V.aug.    V.st.l.w.
+  -@       | V.aug.    V.st.s.w.
+  =#=@     | V.aug.no. V.st.s.w.
+  =#=(^>*) | V.aug.no. V.st.l.w.
+  =@       | V.aug.no. V.st.s.w.
+  =(^>*)   | V.aug.no. V.st.l.w.
 }
 
-.match .forward m_verb {
-  mvb_augment mvb_prefix mvb_steam mvb_time mvb_endings
+/* verb augment */
+
+.match .forward mvb_augment {
+  +@     | V.aug.
+  -(^>*) | V.aug.
+  =.     | V.aug.no.
+}
+
+/* verb */
+
+.match .inward-void m_verb {
+  mvb_augment mvb_stem_vowel mvb_stem mvb_time mvb_endings | vb. verb
 }

@@ -1,11 +1,11 @@
 /*
- * Quenya grammar reference.
+ * Lingua Latina grammar reference.
  * Borezkiy Arseniy Petrovich.
  */
 
-.module /* adj.qu */
+.module /* adj.lat */
 
-.language quenya 1 100
+.language latina 1 100
 .compiler 1 0
 
 /* ==========================

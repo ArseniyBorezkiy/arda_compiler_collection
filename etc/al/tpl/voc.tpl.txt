@@ -32,6 +32,15 @@
 }
 
 /*
+ * prepositions
+ */
+ 
+.vocabulary voc_prepositions {
+  ao  p.
+  oa  p.
+}
+
+/*
  * verbs
  */
  

@@ -1,0 +1,70 @@
+/*
+ * Lingua Latina grammar reference.
+ * Borezkiy Arseniy Petrovich.
+ */
+ 
+.module /* noun.lat */
+
+.language latina 1 100
+.compiler 1 0
+
+/* =====================
+ * NOUN CLASS DEFINITION
+ * ===================== */
+ 
+/*
+ * attributes
+ */
+
+.attribute an_declension 1 .verbose {
+  ND.A   = "first declension"
+  ND.OE  = "second declension"
+  ND.I   = "third declension"
+  ND.U   = "fourth declension"
+  ND.E   = "fifth declension"
+}
+
+.attribute an_casus 2 {
+  N.nom. = "nominativus casus"
+  N.gen. = "genetivus casus"
+  N.dat. = "dativus casus"
+  N.acc. = "accusativus casus"
+  N.abl. = "ablativus casus"
+}
+
+.attribute an_numerus 3 {
+  N.sg.  = "singularis numerus"
+  N.pl.  = "pluralis numerus"
+}
+
+.attribute an_genus 4 {
+  N.m.  = "masculinum genus"
+  N.f.  = "femininum genus"
+  N.n.  = "neutrum genus"
+}
+
+/*
+ * class implementation
+ */
+ 
+.class noun {
+  pars_orationis
+  an_declension
+  an_casus
+  an_numerus
+  an_genus
+}
+
+/*
+ * rules
+ */
+
+.vocabulary voc_nouns ;
+.vocabular .inward mn_voc_stem voc_nouns
+
+.match .inward mn_stem {
+}
+
+.match .inward-void m_noun {
+  mn_stem | n. noun
+}

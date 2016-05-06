@@ -1,6 +1,6 @@
 %% @doc Match expression analyzer.
 %% @end
-%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -module (al_rule).
@@ -42,16 +42,17 @@ match (Word, Filters) ->
 % =============================================================================
 
 do_match ([], Word, _Pos, Acc) -> { true, Word, Acc };
-do_match ([ Filter | Tail ], Word1, Pos1, Acc1) ->  
+do_match ([ { ?ET_EOW, Filter } | Tail ], Word1, Pos1, Acc1) ->
+  case Filter (Word1, Acc1, Pos1) of
+    error -> throw (?e_error);
+    false -> false;
+    { Word2, Acc2, Pos2 } ->
+      do_match (Tail, Word2, Pos2, Acc2)
+  end;
+do_match ([ Filter | Tail ], Word1, Pos1, Acc1) ->
   case Pos1 > length (Word1) of
     true  -> false;
-    false ->
-      case Filter (Word1, Acc1, Pos1) of
-        error -> throw (?e_error);
-        false -> false;
-        { Word2, Acc2, Pos2 } ->
-          do_match (Tail, Word2, Pos2, Acc2)
-      end
+    false -> do_match ([ { ?ET_EOW, Filter } | Tail ], Word1, Pos1, Acc1)
   end.
 
 %
@@ -162,19 +163,21 @@ do_parse_forward ([ { Cmp } | Rule ], Mode, Acc)
         fun (W, V, P) ->
           Wp = string:substr (W, P),
           Filter =
-            fun ({ Ph, _ }) ->
-              case Cmp (true, true) of
-                true ->
-                  case string:str (Wp, Ph) of
-                    1 -> { true, Ph };
-                    _ -> false
-                  end;
-                false ->
-                  case string:str (Wp, Ph) of
-                    1 -> false;
-                    _ -> { true, Ph }
-                  end
-              end
+            fun
+              ({ Ph, _ }) when length (Ph) > 0 ->
+                case Cmp (true, true) of
+                  true ->
+                    case string:str (Wp, Ph) of
+                      1 -> { true, Ph };
+                      _ -> false
+                    end;
+                  false ->
+                    case string:str (Wp, Ph) of
+                      1 -> false;
+                      _ -> { true, Ph }
+                    end
+                end;
+              ({ _, _ }) -> Cmp (true, true)
             end,
           Sort = fun (Ph1, Ph2) -> length (Ph1) > length (Ph2) end,
           case lists:sort (Sort, lists:filtermap (Filter, Phonemes)) of
@@ -199,11 +202,13 @@ do_parse_forward ([ { Cmp } | Rule ], Mode, Acc)
           Fun  =
             fun (W, V, P) ->
               Filter =
-                fun ({ PhSrc, _ }) ->
-                  case string:str (W, PhSrc) of
-                    1 -> true;
-                    _ -> false
-                  end
+                fun
+                  ({ PhSrc, _ }) when length (PhSrc) > 0 ->
+                    case string:str (W, PhSrc) of
+                      1 -> true;
+                      _ -> false
+                    end;
+                  ({ _, _ }) -> true
                 end,
               Sort = fun ({ Ph1, _ }, { Ph2, _ }) -> length (Ph1) > length (Ph2) end,
               case lists:sort (Sort, lists:filter (Filter, Maps)) of
@@ -213,7 +218,7 @@ do_parse_forward ([ { Cmp } | Rule ], Mode, Acc)
                   PhDstLen = length (PhDst),
                   Wt = lists:nthtail (PhSrcLen, W),
                   case Mode of
-                    skip -> { Wt, V, P - PhSrcLen };
+                    skip -> { PhDst ++ Wt, V, P - PhSrcLen + PhDstLen };
                     hold -> { PhDst ++ Wt, V ++ PhDst, P - PhSrcLen + PhDstLen };
                     rift -> { Wt, V ++ PhDst, P - PhSrcLen }
                   end
@@ -224,6 +229,66 @@ do_parse_forward ([ { Cmp } | Rule ], Mode, Acc)
           ?d_warning (?str_lrule_umne (Rule)),
           throw (?e_error)
       end;
+    { ?ET_REFLECTION = Type, Mutation, WildcardLen } ->
+      case Cmp (true, true) of
+        true ->
+          Maps = al_model:get_recursive_properties (Mutation, Type, members),
+          Fun  =
+            fun (W, V, P) ->
+              Wb = string:substr (W, 1, P - 1),
+              Wp = string:substr (W, P),
+              Filter =
+                fun
+                  ({ PhSrc, _ }) when length (PhSrc) > 0 ->
+                    case string:str (Wp, PhSrc) of
+                      1 -> true;
+                      _ -> false
+                    end;
+                  ({ _, _ }) -> true
+                end,
+              Sort = fun ({ Ph1, _ }, { Ph2, _ }) -> length (Ph1) > length (Ph2) end,
+              case lists:sort (Sort, lists:filter (Filter, Maps)) of
+                [] -> false;
+                [ { PhSrc, PhDst } | _ ] ->
+                  PhSrcLen = length (PhSrc),
+                  PhDstLen = length (PhDst),
+                  Wt = lists:nthtail (PhSrcLen, Wp),
+                  case Mode of
+                    skip -> { Wb ++ PhDst ++ Wt, V, P - PhSrcLen + PhDstLen };
+                    hold -> { Wb ++ PhDst ++ Wt, V ++ PhDst, P - PhSrcLen + PhDstLen };
+                    rift -> { Wb ++ Wt, V ++ PhDst, P - PhSrcLen }
+                  end
+              end
+            end,
+          do_parse_forward (lists:nthtail (WildcardLen, Rule), Mode, [ Fun | Acc ]);
+        false ->
+          ?d_warning (?str_lrule_umne (Rule)),
+          throw (?e_error)
+      end;
+    { ?ET_EOW, _, WildcardLen } ->
+      Fun =
+        fun (W, V, P) ->
+          case P > length (W) of
+            true -> { W, V, P };
+            false -> false
+          end
+        end,
+      do_parse_forward (lists:nthtail (WildcardLen, Rule), Mode, [ { ?ET_EOW, Fun } | Acc ]);
+    { ?ET_STATE, { Action, State }, WildcardLen } ->
+      Fun =
+        case Action of
+          load ->
+            fun (_W, V, _P) ->
+              { W0, P0 } = erlang:get ({ state, State }),
+              { W0, V, P0 }
+            end;
+          save ->
+            fun (W, V, P) ->
+              erlang:put ({ state, State }, { W, P }),
+              { W, V, P }
+            end
+        end,
+      do_parse_forward (lists:nthtail (WildcardLen, Rule), Mode, [ Fun | Acc ]);
     error ->
       ?d_warning (?str_lrule_uwildcard (Rule)),
       throw (?e_error)
@@ -339,20 +404,22 @@ do_parse_backward ([ { Cmp } | Rule ], Mode, Acc)
           Pn = length (W) - P + 1,
           Wp = string:substr (W, 1, Pn),
           Filter =
-            fun ({ Ph, _ }) ->
-              Pos = length (Wp) - length (Ph) + 1,
-              case Cmp (true, true) of
-                true ->
-                  case string:rstr (Wp, Ph) of
-                    Pos when Pos > 0 -> { true, Ph };
-                    _ -> false
-                  end;
-                false ->
-                  case string:rstr (Wp, Ph) of
-                    Pos when Pos > 0 -> false;
-                    _ -> { true, Ph }
-                  end
-              end
+            fun
+              ({ Ph, _ }) when length (Ph) > 0 ->
+                Pos = length (Wp) - length (Ph) + 1,
+                case Cmp (true, true) of
+                  true ->
+                    case string:rstr (Wp, Ph) of
+                      Pos when Pos > 0 -> { true, Ph };
+                      _ -> false
+                    end;
+                  false ->
+                    case string:rstr (Wp, Ph) of
+                      Pos when Pos > 0 -> false;
+                      _ -> { true, Ph }
+                    end
+                end;
+              ({ _, _ }) -> Cmp (true, true)
             end,
           Sort = fun (Ph1, Ph2) -> length (Ph1) > length (Ph2) end,
           case lists:sort (Sort, lists:filtermap (Filter, Phonemes)) of
@@ -362,7 +429,7 @@ do_parse_backward ([ { Cmp } | Rule ], Mode, Acc)
                 skip -> { W, V, P + length (Ph) };
                 hold -> { W, Ph ++ V, P + length (Ph) };
                 rift ->
-                  Wb = string:substr (W, Pn + 1),                  
+                  Wb = string:substr (W, Pn + 1),
                   We = lists:sublist (Wp, length (Wp) - length (Ph)),
                   { We ++ Wb, Ph ++ V, P }
               end
@@ -376,12 +443,14 @@ do_parse_backward ([ { Cmp } | Rule ], Mode, Acc)
           Fun  =
             fun (W, V, P) ->
               Filter =
-                fun ({ PhSrc, _ }) ->                   
-                  Pos = length (W) - length (PhSrc) + 1,
-                  case string:rstr (W, PhSrc) of
-                    Pos when Pos > 0 -> true;
-                    _ -> false
-                  end
+                fun
+                  ({ PhSrc, _ }) when length (PhSrc) > 0 ->                   
+                    Pos = length (W) - length (PhSrc) + 1,
+                    case string:rstr (W, PhSrc) of
+                      Pos when Pos > 0 -> true;
+                      _ -> false
+                    end;
+                  ({ _, _ }) -> true
                 end,
               Sort = fun ({ Ph1, _ }, { Ph2, _ }) -> length (Ph1) > length (Ph2) end,
               case lists:sort (Sort, lists:filter (Filter, Maps)) of
@@ -391,7 +460,7 @@ do_parse_backward ([ { Cmp } | Rule ], Mode, Acc)
                   PhDstLen = length (PhDst),
                   Wt = lists:sublist (W, length (W) - PhSrcLen),
                   case Mode of
-                    skip -> { Wt, V, P - PhSrcLen };
+                    skip -> { Wt ++ PhDst, V, P - PhSrcLen + PhDstLen };
                     hold -> { Wt ++ PhDst, PhDst ++ V, P - PhSrcLen + PhDstLen };
                     rift -> { Wt, PhDst ++ V, P - PhSrcLen }
                   end
@@ -402,6 +471,68 @@ do_parse_backward ([ { Cmp } | Rule ], Mode, Acc)
           ?d_warning (?str_lrule_umne (Rule)),
           throw (?e_error)
       end;
+    { ?ET_REFLECTION = Type, Mutation, WildcardLen } ->
+      case Cmp (true, true) of
+        true ->
+          Maps = al_model:get_recursive_properties (Mutation, Type, members),
+          Fun  =
+            fun (W, V, P) ->
+              Pn = length (W) - P + 1,
+              Wp = string:substr (W, 1, Pn),
+              Wb = string:substr (W, Pn + 1),
+              Filter =
+                fun
+                  ({ PhSrc, _ }) when length (PhSrc) > 0 ->                   
+                    Pos = length (Wp) - length (PhSrc) + 1,
+                    case string:rstr (Wp, PhSrc) of
+                      Pos when Pos > 0 -> true;
+                      _ -> false
+                    end;
+                  ({ _, _ }) -> true
+                end,
+              Sort = fun ({ Ph1, _ }, { Ph2, _ }) -> length (Ph1) > length (Ph2) end,
+              case lists:sort (Sort, lists:filter (Filter, Maps)) of
+                [] -> false;
+                [ { PhSrc, PhDst } | _ ] ->              
+                  PhSrcLen = length (PhSrc),
+                  PhDstLen = length (PhDst),
+                  Wt = lists:sublist (Wp, length (W) - PhSrcLen),
+                  case Mode of
+                    skip -> { Wt ++ PhDst ++ Wb, V, P - PhSrcLen + PhDstLen };
+                    hold -> { Wt ++ PhDst ++ Wb, PhDst ++ V, P - PhSrcLen + PhDstLen };
+                    rift -> { Wt ++ Wb, PhDst ++ V, P - PhSrcLen }
+                  end
+              end
+            end,
+          do_parse_backward (lists:nthtail (WildcardLen, Rule), Mode, [ Fun | Acc ]);
+        false ->
+          ?d_warning (?str_lrule_umne (Rule)),
+          throw (?e_error)
+      end;
+    { ?ET_EOW, _, WildcardLen } ->
+      Fun =
+        fun (W, V, P) ->
+          case P > length (W) of
+            true -> { W, V, P };
+            false -> false
+          end
+        end,
+      do_parse_forward (lists:nthtail (WildcardLen, Rule), Mode, [ { ?ET_EOW, Fun } | Acc ]);
+    { ?ET_STATE, { Action, State }, WildcardLen } ->
+      Fun =
+        case Action of
+          load ->
+            fun (_W, V, _P) ->
+              { W0, P0 } = erlang:get ({ state, State }),
+              { W0, V, P0 }
+            end;
+          save ->
+            fun (W, V, P) ->
+              erlang:put ({ state, State }, { W, P }),
+              { W, V, P }
+            end
+        end,
+      do_parse_backward (lists:nthtail (WildcardLen, Rule), Mode, [ Fun | Acc ]);
     error ->
       ?d_warning (?str_lrule_uwildcard (Rule)),
       throw (?e_error)

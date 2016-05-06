@@ -1,0 +1,91 @@
+/*
+ * Lingua Latina grammar reference.
+ * Borezkiy Arseniy Petrovich.
+ */
+ 
+.global /* etc.lat */
+
+.language latina 1 100
+.compiler 1 0
+
+/* =========================
+ * ROMAN ALPHABET DEFINITION
+ * ========================= */
+
+/*
+ * vocales et diphthongi
+ */
+ 
+.alphabet short_vowel {
+  a   = "vowel (a)"
+  e   = "vowel (e)"
+  i   = "vowel (i)"
+  o   = "vowel (o)"
+  u   = "vowel (u)"
+  y   = "vowel (ypsilon)"
+}
+
+.alphabet diphthong_vowel {
+  ae  = "diphthong (ae)"
+  oe  = "diphthong (oe)"
+  au  = "diphthong (au)"
+  ei  = "diphthong (ei)" /* Sobolevsky */
+  eu  = "diphthong (eu)" /* Sobolevsky */
+}
+
+.alphabet long_vowel {
+  aa  = "long vowel (a)"
+  ee  = "long vowel (e)"
+  ii  = "long vowel (i)"
+  oo  = "long vowel (o)"
+  uu  = "long vowel (u)"
+  yy  = "long vowel (y)"
+}
+
+.alphabet vowel .base short_vowel long_vowel diphthong_vowel { }
+
+/*
+ * consonantes
+ */
+ 
+.alphabet single_consonant {
+  b   = "consonant (be)"
+  c   = "consonant (ce)"
+  d   = "consonant (de)"
+  f   = "consonant (ef)"
+  g   = "consonant (ge)"
+  h   = "consonant (ha)"
+  k   = "consonant (ka)"
+  l   = "consonant (el)"
+  m   = "consonant (em)"
+  n   = "consonant (en)"
+  p   = "consonant (pe)"
+  q   = "consonant (qu)"
+  r   = "consonant (er)"
+  s   = "consonant (es)"
+  t   = "consonant (te)"
+  v   = "consonant (ve)"
+  x   = "consonant (ix)"
+  z   = "consonant (zeta)"
+}
+
+.alphabet consonant .base single_consonant { }
+
+/*
+ * phomenes
+ */
+ 
+.alphabet phoneme .base vowel consonant { }
+
+/*
+ * global wildcards
+ */
+
+.wildcard . phoneme
+.wildcard * vowel
+.wildcard # consonant
+
+.wildcard @ short_vowel
+.wildcard ^ long_vowel
+
+.wildcard VOID .empty

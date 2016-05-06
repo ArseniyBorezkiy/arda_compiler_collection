@@ -16,12 +16,12 @@
 % TYPES DEFINITION
 % =============================================================================
 
--record (word_k, { oid    :: list (unsigned_t ()) }).
+-record (word_k, { oid        :: list (unsigned_t ()) }).
 
--record (word_v, { guards :: list (string ()),
-                   route  :: list ({ string (), string () }),
-                   stem   :: string (),
-                   class  :: string () }).
+-record (word_v, { guards     :: list (string ()),
+                   auxiliary  :: list ({ aux, string (), string () }),
+                   vocabulars :: list ({ voc, string (), string () }),
+                   class      :: string () }).
 
 -type word_k_t () :: # word_k { } .
 -type word_v_t () :: # word_v { } .

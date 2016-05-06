@@ -1,6 +1,6 @@
 %% @doc Dynamically described syntax model.
 %% @end
-%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -module (as_model).

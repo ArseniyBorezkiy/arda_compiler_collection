@@ -1,6 +1,6 @@
 %% @doc Dynamically described model's lexical rules module.
 %% @end
-%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -module (am_lrule).
@@ -11,8 +11,8 @@
 %
 
 -export ([
-          create_composite/6,
-          create_vocabular/7,
+          create_composite/8,
+          create_vocabular/10,
           create_expression/6,
           create_guard/8,
           select_subrules/2,
@@ -52,19 +52,23 @@
   Server     :: atom (),
   Node       :: string (),
   Name       :: string (),
+  Equ        :: string (),
   X          :: position_t (),
   Y          :: position_t (),
+  C          :: boolean (),
   D          :: direction_t ()
 ) -> ok.
 
-create_composite (Server, Node, Name, X, Y, D) ->
+create_composite (Server, Node, Name, Equ, X, Y, C, D) ->
   ?validate_list (Node),
   ?validate_list (Name),
+  ?validate_list (Equ),
   ?validate_integer (X, 1),
   ?validate_integer (Y, 1),
-  ?validate (D, [ prefix, suffix, postfix ]),
+  ?validate_bool (C),
+  ?validate (D, [ forward, backward, inward ]),
   Key     = #match_k { node = Node, x = X, y = Y },
-  Rule    = #crule_v { name = Name },
+  Rule    = #crule_v { name = Name, capacity = C, equivalent = Equ },
   Value   = #match_v { dir = D, rule = Rule },
   gen_acc_storage:cast (Server, create_rule, { Key, Value }).
 
@@ -74,20 +78,27 @@ create_composite (Server, Node, Name, X, Y, D) ->
   Node       :: string (),
   Name       :: string (),
   Voc        :: string (),
+  VocType    :: voc_type_t (),
+  MatchType  :: match_type_t (),
   X          :: position_t (),
   Y          :: position_t (),
+  C          :: boolean (),
   D          :: direction_t ()
 ) -> ok.
 
-create_vocabular (Server, Node, Name, Voc, X, Y, D) ->
+create_vocabular (Server, Node, Name, Voc, VocType, MatchType, X, Y, C, D) ->
   ?validate_list (Node),
   ?validate_list (Name),
   ?validate_list (Voc),
+  ?validate (VocType, [ exact, left, right ]),
+  ?validate (MatchType, [ word, value ]),
   ?validate_integer (X, 1),
   ?validate_integer (Y, 1),
-  ?validate (D, [ prefix, suffix, postfix ]),
+  ?validate_bool (C),
+  ?validate (D, [ forward, backward, inward ]),
   Key     = #match_k { node = Node, x = X, y = Y },
-  Rule    = #vrule_v { name = Name, voc = Voc },
+  Rule    = #vrule_v { name = Name, voc = Voc, capacity = C,
+                       match_type = MatchType, voc_type = VocType },
   Value   = #match_v { dir = D, rule = Rule },
   gen_acc_storage:cast (Server, create_rule, { Key, Value }).
 
@@ -106,11 +117,12 @@ create_expression (Server, Node, Expr, X, Y, D) ->
   ?validate_list (Expr),
   ?validate_integer (X, 1),
   ?validate_integer (Y, 1),
-  ?validate (D, [ prefix, postfix ]),
+  ?validate (D, [ forward, backward, inward ]),
   Filters =
     case D of
-      prefix  -> al_rule:parse_forward (Expr);
-      postfix -> al_rule:parse_backward (Expr)
+      forward  -> al_rule:parse_forward (Expr);
+      inward   -> al_rule:parse_forward (Expr);
+      backward -> al_rule:parse_backward (Expr)
     end,
   Key     = #match_k { node = Node, x = X, y = Y },
   Rule    = #erule_v { regexp = Expr, filters = Filters },
@@ -172,12 +184,12 @@ select_subrules (Server, Node) ->
         end,
       Inc = fun (X1, X2) -> X1 < X2 end,
       Dec = fun (X1, X2) -> X1 > X2 end,
-      { Prefix, Entries2 } = lists:partition (Separator (prefix), Entries1),
-      { Postfix, Suffix }  = lists:partition (Separator (postfix), Entries2),
+      { Fw, Entries2 } = lists:partition (Separator (forward), Entries1),
+      { Bw, Iw }       = lists:partition (Separator (backward), Entries2),
       List =
-        lists:sort (Comparator (Inc), Prefix) ++
-        lists:sort (Comparator (Dec), Postfix) ++
-        lists:sort (Comparator (Inc), Suffix),
+        lists:sort (Comparator (Inc), Fw) ++
+        lists:sort (Comparator (Dec), Bw) ++
+        lists:sort (Comparator (Inc), Iw),
       List
     end,
   SortYS = fun (Y1, Y2) -> Y1 < Y2 end,
@@ -188,14 +200,16 @@ select_subrules (Server, Node) ->
   Server     :: atom (),
   Node       :: string (),
   Y          :: position_t ()
-) -> list (gas_entry_t ()).
+) -> list (guard_v_t ()).
 
 select_guards (Server, Node, Y) ->
   ?validate_list (Node),
   ?validate_integer (Y, 1),
   Key     = #match_k { node = Node, x = '_', y = Y },
-  Value   = #guard_v { sign = '_', type = '_', name = '_' },
-  gen_acc_storage:call (Server, select_guard, { Key, Value }).
+  Value   = #guard_v { sign = '_', type = '_', name = '_', base = '_' },
+  Entries = gen_acc_storage:call (Server, select_guard, { Key, Value }),
+  Fun     = fun (#gas_entry { v = Value }) -> Value end,
+  lists:map (Fun, Entries).
 
 % =============================================================================
 % GEN ACC STORAGE CALLBACKS

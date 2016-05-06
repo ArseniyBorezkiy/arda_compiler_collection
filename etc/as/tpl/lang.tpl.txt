@@ -1,0 +1,14 @@
+/*
+ * Template for your own grammar reference.
+ * Your full name here.
+ *
+ * This is the main grammar reference file specified in the compiler
+ * server application file located at the 'ebin/acc.app'.
+ */
+
+.language my 1 100 /* discussed in al */
+.compiler 1 0 /* discussed in al */
+
+.include "etc.tpl.txt"
+
+?

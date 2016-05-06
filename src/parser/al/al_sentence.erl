@@ -1,6 +1,6 @@
 %% @doc Sentence compiler.
 %% @end
-%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -module (al_sentence).
@@ -104,11 +104,11 @@ format_long ([ { Target, Words } | Tail ], Text) ->
   format_long (Tail, NewText).
 
 do_format_long ([], Acc) -> Acc;
-do_format_long ([ #gas_entry { k = #word_k { oid    = Oid },
-                               v = #word_v { guards = Guards,
-                                             route  = Route,
-                                             stem   = Stem,
-                                             class  = Class } } | Tail ], Acc) ->
+do_format_long ([ #gas_entry { k = #word_k { oid        = Oid },
+                               v = #word_v { guards     = Guards,
+                                             auxiliary  = Auxiliary,
+                                             vocabulars = Vocabulars,
+                                             class      = Class } } | Tail ], Acc) ->
   Verbose  = erlang:get (verbose),
   Minimal  = erlang:get (minimal),
   GetAttrs =
@@ -133,14 +133,21 @@ do_format_long ([ #gas_entry { k = #word_k { oid    = Oid },
       (_, Acc0) -> Acc0
     end,
   GetRoute =
-    fun ({ Node, Value }, Acc0) ->
-      Acc0 ++ acc_debug:sprintf ("      ~s = ~s~n", [ Node, Value ])
+    fun
+      ({ aux, Node, Value }, Acc0) ->
+        Acc0 ++
+          case Value of
+            "" -> acc_debug:sprintf ("      /* ~s */~n", [ Node ]);
+            _  -> acc_debug:sprintf ("      /* ~s = ~s */~n", [ Node, Value ])
+          end;
+      ({ voc, Node, Value, Voc }, Acc0) ->
+        Acc0 ++ acc_debug:sprintf ("      ~s = ~s /* ~s */~n", [ Node, Value, Voc ])
     end,
   Attrs   = lists:foldl (GetAttrs, "", Guards),
-  Trace   = lists:foldl (GetRoute, "", Route),
+  Trace   = lists:foldl (GetRoute, "", Vocabulars ++ Auxiliary),
   Comment = al_word:format_oid (Oid),
-  Format  = "  ~s ~s { /* ~s */~n~s    /*~n~s    */~n  }~n",
-  Result  = acc_debug:sprintf (Format, [ Stem, Class, Comment, Attrs, Trace ]),
+  Format  = "  ~s { /* ~s */~n~s    {~n~s    }~n  }~n",
+  Result  = acc_debug:sprintf (Format, [ Class, Comment, Attrs, Trace ]),
   do_format_long (Tail, Acc ++ Result).
 
 %
@@ -163,9 +170,10 @@ format_short ([ { Target, Words } | Tail ], Text) ->
   format_short (Tail, NewText).
 
 do_format_short ([], Acc) -> Acc;
-do_format_short ([ #gas_entry { v = #word_v { guards = Guards,
-                                              stem   = Stem,
-                                              class  = Class } } | Tail ], Acc) ->
+do_format_short ([ #gas_entry { k = #word_k { oid       = Oid },
+                               v = #word_v { guards     = Guards,
+                                             vocabulars = Vocabulars,
+                                             class      = Class } } | Tail ], Acc) ->
   Verbose  = erlang:get (verbose),
   Minimal  = erlang:get (minimal),
   GetAttrs =
@@ -201,11 +209,21 @@ do_format_short ([ #gas_entry { v = #word_v { guards = Guards,
         Pos2  = proplists:get_value (ordinal, Attr2#entity_v.properties),
         Pos1 =< Pos2
     end,
-  Attrs  = lists:foldl (GetAttrs, "", lists:sort (Comparator, Guards)),
+  Attrs    = lists:foldl (GetAttrs, "", lists:sort (Comparator, Guards)),
+  GetRoute =
+    fun
+      ({ voc, Node, Value, _Voc }, Acc0) ->
+        Acc0 ++
+          case Minimal of
+            true  -> acc_debug:sprintf (" ~s = ~s", [ Node, Value ]);
+            false -> acc_debug:sprintf ("      ~s = ~s~n", [ Node, Value ])
+          end
+    end,
+  Trace  = lists:foldl (GetRoute, "", Vocabulars),
   Format =
     case Minimal of
-      true  -> "  ~s ~s {~s }~n";
-      false -> "  ~s ~s {~n~s  }~n"
+      true  -> "  ~s {~s {~s } }~n";
+      false -> "  ~s {~n~s    {~n~s    }~n  }~n"
     end,
-  Result = acc_debug:sprintf (Format, [ Stem, Class, Attrs ]),
+  Result = acc_debug:sprintf (Format, [ Class, Attrs, Trace ]),
   do_format_short (Tail, Acc ++ Result).

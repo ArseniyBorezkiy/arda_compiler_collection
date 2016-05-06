@@ -14,7 +14,7 @@ hamne      /* V.p.                 */
 hamuva     /* V.f.                 */
 ahaamie    /* V.pfct.              */
 
-miquo      /* V.inf.               */
+miqo       /* V.inf.               */
 mique      /* V.aor.               */
 miqwe      /* V.aor.               */
 miiqua     /* V.pr.                */
@@ -38,7 +38,6 @@ hamna      /* passive participle */
 miquina    /* passive participle */
 miquuna    /* passive participle */
  
-/*
 /*
  * adjectives
  */
@@ -84,4 +83,3 @@ hildinyallor
 hildinyallon
 hildinyanen
 hildinyainen
-*/

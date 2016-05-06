@@ -3,7 +3,7 @@
  * Your full name here.
  *
  * This is the main grammar reference file specified in the compiler
- * server application file located at the 'ebin/al.app'.
+ * server application file located at the 'ebin/acc.app'.
  */
 
 .language my 1 100
@@ -88,24 +88,11 @@
  *
  */
 
-
-
-/*
- * Before definitions of how words should be recognized you must specify
- * phony rule that is equivalent to match word from any vocabulary.
- *
- *   .vocabular <rule>
- *
- * This is the lazy processing rule that matches after all horizontal rules
- * of current rule chain is succesfully matched. It is the position independent
- * rule that means you can locate it at any position relative to other rules
- * (see match specification for more details).
- */
-
 .attribute pars_orationis 0 {
   n.   = "noun"
   adj. = "adjective"
   vb.  = "verb"
+  p.   = "preposition"
 }
 
 /*
@@ -139,6 +126,7 @@
 .include "etc.tpl.txt" /* alphabet, mutations, global wildcards */
 .include "adj.tpl.txt"
 .include "noun.tpl.txt"
+.include "prep.tpl.txt"
 .include "verb.tpl.txt"
 .include "voc.tpl.txt"
 
@@ -165,10 +153,11 @@
  *   ...  - and so on.
  */
 
-.match .prefix main {
+.match .inward-void main {
   m_adjective /* see adj.tpl.txt  */
   m_noun      /* see noun.tpl.txt */
   m_verb      /* see verb.tpl.txt */
+  m_prep      /* see prep.tpl.txt */
 }
 
 .target main
@@ -185,18 +174,23 @@
  *
  * Here we will discuss matching specification.
  *
- *   .match <direction> <name> {
+ *   .match <direction> <name> [ <vocabular> <dictionary> ] {
  *     <expression> [ <separator> <guards> ]
  *     ...
  *   }
  *
  *   Where:
- *     <direction>  - '.forward' or '.backward' specifies would be rule
- *                    applied from left end or right end of the word.
- *                    Stem should be putted in the center of forward and
- *                    backward rules. Usually forward rules is used for
- *                    match prefixes and backward rules for match suffixes
- *                    and endings.
+ *     <direction>  - '.forward', '.backward' or '.inward' specifies would be
+ *                    rule applied from left end or right end of the word, or
+ *                    from left to right end of the word after all other
+ *                    directed rules. The relative rule order specified in the
+ *                    match line is uses for rules with one direction. At first
+ *                    matches all forward rules, after backward and at the end
+ *                    all inward rules. Usually forward rules is used for match
+ *                    prefixes, backward rules for match suffixes and endings.
+ *                    Thus, word stem should be putted as the inward rule.
+ *                    If the rule should not to have value you can append
+ *                    '-void' suffix to the direction.
  *     <name>       - The unique name of the rule. Should be have name with
  *                    prefix m*_ where the * is short name or first letter
  *                    of the word class (e.g. 'mn_' for nouns, 'ma_' for
@@ -212,6 +206,33 @@
  *                    changes meaning 'has' to 'not has' for its one following
  *                    member. Rule matching will stop immediatelly when two
  *                    mutually exclusive members of attribute meets.
+ *     <vocabular>  - '.vocabular', '.vocabular-l' or '.vocabular-r' allows you
+ *                    to specify that rule's value must be compared with stems
+ *                    from specified vocabulary. The first means that the
+ *                    rule's value must exactly matches any vocabular stem.
+ *                    The second means that the vocabular stem must be left
+ *                    subword of the rule's value and the third - right subword
+ *                    of the rule's value.
+ *     <dictionary> - the vocabulary to stem comparation.
+ *
+ * The rule's value is a composite value of the each one horizontal line
+ * subrules. If the subrule specified with the '-void' direction suffix,
+ * it's value will not be affect to the parent composite value. The value
+ * depends on the subrules position order only. Attaching is ascendant position
+ * order uses. Forward and inward rules' values attaches to the left value's
+ * end and the backward rules' values attaches to the right value's end.
+ *
+ * Each regular expression is determined by following things:
+ *   - current word rest
+ *   - current word rest offset
+ *
+ * You can load it or save it using wildcards in regular expressions.
+ *
+ *   .state <state>
+ *   .wildcard <wildcard> ( '.load-state' | '.save-state' ) <state>
+ *
+ * Note that states as so as wildcards managed by namespaces (it is could be
+ * local using '.module' directive or global using '.global' directive).
  *
  * (see 'adj.tpl.txt', 'noun.tpl.txt' and 'verb.tpl.txt' files for details)
  */

@@ -1,6 +1,6 @@
 %% @doc Dynamically described lexical model.
 %% @end
-%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -module (al_model).
@@ -28,8 +28,8 @@
           get_parent_entity/2,
           get_recursive_properties/3,
           % am lrule module
-          create_composite/5,
-          create_vocabular/6,
+          create_composite/7,
+          create_vocabular/9,
           create_expression/5,
           create_guard/7,
           select_subrules/1,
@@ -123,11 +123,11 @@ get_recursive_properties (Name, Type, PropName) ->
 % am lrule module
 %
 
-create_composite (Node, Name, X, Y, D) ->
-  am_lrule:create_composite (?MODULE, Node, Name, X, Y, D).
+create_composite (Node, Name, Equ, X, Y, C, D) ->
+  am_lrule:create_composite (?MODULE, Node, Name, Equ, X, Y, C, D).
 
-create_vocabular (Node, Name, Voc, X, Y, D) ->
-  am_lrule:create_vocabular (?MODULE, Node, Name, Voc, X, Y, D).
+create_vocabular (Node, Name, Voc, VocType, MatchType, X, Y, C, D) ->
+  am_lrule:create_vocabular (?MODULE, Node, Name, Voc, VocType, MatchType, X, Y, C, D).
 
 create_expression (Node, Expr, X, Y, D) ->
   am_lrule:create_expression (?MODULE, Node, Expr, X, Y, D).
@@ -157,5 +157,5 @@ create_stem (Voc, Stem, Guards) ->
 find_stem (Voc, Stem) ->
   am_voc:find_stem (?MODULE, Voc, Stem).
 
-select_stems (Voc, Word, Direction) ->
-  am_voc:select_stems (?MODULE, Voc, Word, Direction).
+select_stems (Voc, Word, VocType) ->
+  am_voc:select_stems (?MODULE, Voc, Word, VocType).

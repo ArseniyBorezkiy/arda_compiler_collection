@@ -1,6 +1,6 @@
 %% @doc Dynamically described lexical grammatical model.
 %% @end
-%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -ifndef (__L_MODEL_HRL__).
@@ -30,6 +30,9 @@
 -define (ET_VOCABULARY, vocabulary).
 -define (ET_MATCH, match).
 -define (ET_MUTATION, mutation).
+-define (ET_REFLECTION, reflection).
+-define (ET_STATE, state).
+-define (ET_EOW, eow).
 
 %
 % end

@@ -6,7 +6,7 @@
  * Should be included at first.
  */
  
-.global /* ect.tpl */
+.global /* etc.tpl */
 
 /*
  * '.global' directive specifies the global namespace for wildcards.

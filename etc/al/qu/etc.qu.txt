@@ -3,7 +3,7 @@
  * Borezkiy Arseniy Petrovich.
  */
  
-.global /* ect.qu */
+.global /* etc.qu */
 
 .language quenya 1 100
 .compiler 1 0
@@ -81,6 +81,9 @@
   ss  = "esse"
   nn  = "long numen"
   mm  = "long malta"
+  ll  = "long lambe"
+  mn  = "malta + numen"
+  rn  = "romen + numen"
 }
 
 .alphabet denasaled_consonant {
@@ -142,24 +145,6 @@
 .alphabet phoneme .base vowel consonant { }
 
 /*
- * reflections
- */
- 
-.mutation denasalize {
-  nt  = t
-  mp  = p
-  nc  = c
-  nqu = qu
-}
-
-.mutation nasalize {
-  t  = nt
-  p  = mp
-  c  = nc
-  qu = nqu
-}
-
-/*
  * global wildcards
  */
 
@@ -170,3 +155,5 @@
 .wildcard @ short_vowel
 .wildcard ^ long_vowel
 .wildcard % pair_vowel
+
+.wildcard VOID .empty

@@ -1,6 +1,6 @@
 @echo off
 
-SET LANG=tpl
+SET LANG=qu
 
 SET ROOT=%~dp0
 SET TEST_LOG=%ROOT%\var\tmp\test.log
@@ -15,5 +15,5 @@ echo *** QUENYA TEST *** > %TEST_LOG%
 echo. >> %TEST_LOG%
 
 %ACC% >> %TEST_LOG%
-%ACC% -s -m -a >> %TEST_LOG%
-%ACC% -s -m -d %LANG_DIR% -i test.in.txt -o test.out.txt >> %TEST_LOG%
+%ACC% -a >> %TEST_LOG%
+%ACC% -d %LANG_DIR% -i test.in.txt -o test.out.txt >> %TEST_LOG%

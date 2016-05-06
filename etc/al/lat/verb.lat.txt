@@ -1,0 +1,182 @@
+/*
+ * Lingua Latina grammar reference.
+ * Borezkiy Arseniy Petrovich.
+ */
+ 
+.module /* verb.lat */
+
+.language latina 1 100
+.compiler 1 0
+
+/* =======================
+ * VERBUM CLASS DEFINITION
+ * ======================= */
+ 
+/*
+ * attributes
+ */
+
+.attribute avb_conjugation 1 .verbose {
+  VC.A        = "1 conjugation of -a type"
+  VC.E        = "2 conjugation of -e type"
+  VC.U        = "3 conjugation of -u/consonant type"
+  VC.I        = "4 conjugation of -i type"
+}
+
+.attribute avb_u_conjugation 2 .verbose {
+  VC.U1       = "not strengthened"
+  VC.U2       = "strengthened -i"
+}
+
+.attribute avb_stem_type 3 .verbose {
+  VS.if       = "infectus stem"
+  VS.pf       = "perfectus stem"
+  VS.sup      = "supinum stem"
+}
+
+.attribute avb_tempus 4 {
+  V.praes.    = "praesens tempus"
+  V.impf.     = "imperfectum tempus"
+  V.fut.1.    = "futurum primum tempus"
+  V.pf.       = "perfectum tempus"
+  V.ppf.      = "plusquamperfectum tempus"
+  V.fut.2.    = "futurum secundum tempus"
+}
+
+.attribute avb_modus 5 {
+  V.ind.      = "indicativus modus"
+  V.con.      = "coniunctivus modus"
+  V.imper.    = "imperativus modus"
+  V.inf.      = "infinitivus modus"
+}
+
+.attribute avb_genus 6 {
+  V.act.      = "activum genus"
+  V.pass.     = "passivum genus"
+}
+
+.attribute avb_persona 7 {
+  V.prima     = "prima persona"
+  V.secunda   = "secunda persona"
+  V.tertia    = "tertia persona"
+}
+
+.attribute avb_numerus 8 {
+  V.sg.       = "singularis numerus"
+  V.pl.       = "pluralis numerus"
+}
+
+.attribute avb_connection 9 .verbose {
+  V.cw.       = "has connective vowel"
+  V.cw.no     = "has not connective vowel"
+}
+
+.attribute avb_connection_type 10 .verbose {
+  V.cw.i      = "connective vowel (i)"
+  V.cw.e      = "connective vowel (e)"
+  V.cw.u      = "connective vowel (u)"
+}
+
+/*
+ * class implementation
+ */
+ 
+.class verb {
+  pars_orationis
+  avb_conjugation
+  avb_u_conjugation
+  avb_stem_type
+  avb_tempus
+  avb_modus
+  avb_genus
+  avb_persona
+  avb_numerus
+  avb_connection
+  avb_connection_type
+}
+
+/* ==================
+ * VERBUM MATCH RULES
+ * ================== */
+
+.vocabulary voc_verbs ;
+.vocabular .inward mvb_voc_stem voc_verbs
+
+/* stem */
+
+.match .inward mvb_stem {
+}
+
+/* tempus uel modus */
+
+.match .backward mvb_tempus {
+}
+
+/* persona et numerus */
+
+.match .backward mvb_connection_vowel {
+  /* praesens indicativi */
+  =.   |        V.cw.no
+  (+a) |        V.cw.no V.praes. VC.A V.sg. V.prima
+  +e   | V.cw.e V.cw.   V.praes. VC.U V.sg. V.secunda V.pass.
+  +i   | V.cw.i V.cw.   V.praes. VC.U ~ ( ( V.sg. & V.prima ) | ( V.pl. & V.tertia ) )
+  +u   | V.cw.u V.cw.   V.praes. ( VC.U | VC.I ) V.pl. V.tertia
+}
+
+.match .backward mvb_connection_substem {
+  /* praesens indicativi */
+  =.   |
+  +i   | VC.U VC.U2 ( ( V.sg. & V.prima ) | ( V.pl. & V.tertia ) )
+}
+
+.match .backward mvb_connection {
+  mvb_connection_substem mvb_connection_vowel
+}
+
+.match .backward mvb_ending {
+  /* activum genus */
+  +o     | V.sg. V.prima   V.act. V.cw.no
+  +m     | V.sg. V.prima   V.act. V.cw.i
+  +s     | V.sg. V.secunda V.act. V.cw.i
+  +t     | V.sg. V.tertia  V.act. V.cw.i
+  +mus   | V.pl. V.prima   V.act. V.cw.i
+  +tis   | V.pl. V.secunda V.act. V.cw.i
+  +nt    | V.pl. V.tertia  V.act. V.cw.u
+  /* passivum genus */
+  +or    | V.sg. V.prima   V.pass. V.cw.no
+  +r     | V.sg. V.prima   V.pass. V.cw.i
+  +ris   | V.sg. V.secunda V.pass. V.cw.e
+  +tur   | V.sg. V.tertia  V.pass. V.cw.i
+  +mur   | V.pl. V.prima   V.pass. V.cw.i
+  +mini  | V.pl. V.secunda V.pass. V.cw.i
+  +ntur  | V.pl. V.tertia  V.pass. V.cw.u
+}
+
+.match .backward mvb_imperativus {
+  /* infinitivus praesentis activi */
+  +re    | V.praes. V.act. ( VC.A | VC.E | VC.I )
+  +ere   | V.praes. V.act. VC.U
+  /* infinitivus praesentis passivi */
+  +ri    | V.praes. V.pass. ( VC.A | VC.E | VC.I )
+  +i     | V.praes. V.pass. VC.U
+}
+
+.match .backward mvb_imperativus {
+  /* imperativus praesentis activi */
+  =.   | V.praes. V.act. V.secunda V.sg. ( VC.A | VC.E | VC.I ) 
+  +e   | V.praes. V.act. V.secunda V.sg. ( VC.U )
+  +te  | V.praes. V.act. V.secunda V.pl. ( VC.A | VC.E | VC.I ) 
+  +ite | V.praes. V.act. V.secunda V.pl. ( VC.U )
+}
+
+.match .backward mvb_suffix {
+  mvb_infinitivus | V.inf.
+  mvb_imperativus | V.imper.
+  mvb_tempus mvb_connection mvb_ending
+}
+
+/* verb */
+
+.match .inward-void m_verb {
+  mvb_stem mvb_suffix | vb. verb
+}

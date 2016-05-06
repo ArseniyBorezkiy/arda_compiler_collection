@@ -91,14 +91,31 @@
  *
  * Thus lets describe matching rules for 'lol' adjectives.
  */
+
+.vocabulary voc_adjectives ; /* preemptive declaration, see 'voc.tpl.txt' */
+.vocabular .inward ma_stem voc_adjectives
+ 
+/*
+ * Before definitions of how words should be recognized you can specify
+ * phony rule that is equivalent to match word from specified vocabulary.
+ * It is means that the rest of the word would be matched at the specified in
+ * the match section order (order depends on the position and the direction,
+ * see match specification for more details).
+ *
+ *   .vocabular   <direction> <rule> <dictionary> /* 1 */
+ *   .vocabular-l <direction> <rule> <dictionary> /* 2 */
+ *   .vocabular-r <direction> <rule> <dictionary> /* 3 */
+ *
+ * The first variant is used for exact matches (whole rest of the word).
+ * The second - for left end subrest matches.
+ * The third - for right end subrest matches.
+ */
  
 /*
  * rules
  */
 
-.match .prefix ma_stem .vocabular voc_adjectives { }
-
-.match .postfix ma_number {         /* e.g.             */
+.match .backward ma_number {        /* e.g.             */
   =#          | A.sg. AD.C          /* al       -> al   */
   =*          | A.sg. AD.V          /* lo       -> lo   */
   =#+a        | A.pl. AD.C A.no.    /* ola      -> ol   */
@@ -106,13 +123,13 @@
   =*+lolo     | A.pl. AD.V ~ A.no.  /* allololo -> allo */
 }
 
-.match .prefix ma_degree {  /* e.g.                                        */
+.match .forward ma_degree { /* e.g.                                        */
   +al  | A.sup.             /* allo -> lo, alol -> ol                      */
   +@-# | A.cmp.             /* ulo  -> lo                                  */
   =.   | ~ A.sup. ~ A.cmp.  /* '.' is any phoneme wildcard ('etc.tpl.txt') */
 }
 
-.match .prefix m_adjective {
+.match .inward-void m_adjective {
   ma_degree ma_stem ma_number | adj. adjective
 }
 

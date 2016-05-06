@@ -1,6 +1,6 @@
 %% @doc Arguments checker.
 %% @end
-%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -ifndef (__VALIDATE_HRL__).
@@ -27,6 +27,7 @@
 -define (validate_integer (V, Min, Max), _validate_integer (V, Min, Max)).
 -define (validate_list (V), _validate_list (V)).
 -define (validate_atom (V), _validate_atom (V)).
+-define (validate_bool (V), _validate_bool (V)).
 -define (validate_record (V, R), _validate_record (V, R)).
 -define (validate_function (V, A), _validate_function (V, A)).
 -define (validate_record_list (V, R), _validate_record_list (V, R)).
@@ -38,6 +39,7 @@
 -define (validate_integer (_V, _Min, _Max), ok).
 -define (validate_list (_V), ok).
 -define (validate_atom (_V), ok).
+-define (validate_bool (_V), ok).
 -define (validate_record (_V, _R), ok).
 -define (validate_function (_V, _A), ok).
 -define (validate_record_list (_V, _R), ok).
@@ -88,6 +90,13 @@ _validate_atom (Value)
   ok;
 
 _validate_atom (Value) ->
+  throw (?e_invalid_value (Value)).
+
+_validate_bool (Value)
+  when is_boolean (Value) ->
+  ok;
+
+_validate_bool (Value) ->
   throw (?e_invalid_value (Value)).
 
 _validate_record (Value, Record)

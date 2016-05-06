@@ -1,3 +1,6 @@
+oa       /* preposition */
+aooaaooa /* concatenated preposition */
+
 loool  /* noun */
 ll     /* noun */
 

@@ -1,6 +1,6 @@
 %% @doc Dynamically described model's syntax rules module.
 %% @end
-%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -ifndef (__AM_SRULE_HRL__).

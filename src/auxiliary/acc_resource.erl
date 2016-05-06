@@ -1,6 +1,6 @@
 %% @doc Multilanguage strings.
 %% @end
-%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -module (acc_resource).
@@ -266,8 +266,8 @@ encode_llang_en (?str_llang_ueotbcend) ->
 encode_llang_en (?str_llang_uewstate (State, Token, Type)) ->
   acc_debug:sprintf ("unexpected ~p of type '~p' when '~p'", [ Token, Type, State ]);
 
-encode_llang_en (?str_llang_eparent (Token, Type1, Type2)) ->
-  acc_debug:sprintf ("expected parent ~p of type '~p' instead of '~p'", [ Token, Type1, Type2 ]);
+encode_llang_en (?str_llang_eparent (Token, Type, Types)) ->
+  acc_debug:sprintf ("expected parent ~p of type '~p' instead of any from '~p'", [ Token, Type, Types ]);
 
 encode_llang_en (Resource) ->
   throw (?e_undefined_resource (Resource)).
@@ -277,7 +277,7 @@ encode_llang_en (Resource) ->
 %
 
 encode_lrule_en (?str_lrule_umne (Rule)) ->
-  acc_debug:sprintf ("mutation negotiations unsupported in subrule ~p", [ Rule ]);
+  acc_debug:sprintf ("mutation and reflection negotiations unsupported in subrule ~p", [ Rule ]);
 
 encode_lrule_en (?str_lrule_uwildcard (Rule)) ->
   acc_debug:sprintf ("unknown wildcard in rule ~p", [ Rule ]);
@@ -329,14 +329,26 @@ encode_lword_en (?str_lword_nsubrules (Rule)) ->
 encode_lword_en (?str_lword_state (Oid, Rule, Word, Guards)) ->
   acc_debug:sprintf ("~s : rule: '~s', word: '~s' | ~s", [ Oid, Rule, Word, Guards ]);
 
+encode_lword_en (?str_lword_uclass) ->
+  acc_debug:sprintf ("class not specified", []);
+
 encode_lword_en (?str_lword_aclass (Classes)) ->
   acc_debug:sprintf ("class ambiguity: ~p", [ Classes ]);
 
 encode_lword_en (?str_lword_bdump (Word)) ->
   acc_debug:sprintf ("-- ~s: dump begin", [ Word ]);
 
-encode_lword_en (?str_lword_dump (Oid, Match, Value, WordIn, WordOut, Guards)) ->
-  acc_debug:sprintf ("~s : ~s = ~s; ~s -> ~s | ~s", [ Oid, Match, Value, WordIn, WordOut, Guards ]);
+encode_lword_en (?str_lword_iedump (Oid, Node, Expr, Value, WordIn, WordOut, Guards)) ->
+  acc_debug:sprintf ("~s : (~s) ~s = ~s; ~s -> ~s | ~s", [ Oid, Node, Expr, Value, WordIn, WordOut, Guards ]);
+
+encode_lword_en (?str_lword_icdump (Oid, Node, Guards)) ->
+  acc_debug:sprintf ("~s : ~s | ~s", [ Oid, Node, Guards ]);
+
+encode_lword_en (?str_lword_ivdump (Oid, Node, Value, Guards)) ->
+  acc_debug:sprintf ("~s : ~s = ~s | ~s", [ Oid, Node, Value, Guards ]);
+
+encode_lword_en (?str_lword_iwdump (Oid, Node, Value, WordIn, WordOut, Guards)) ->
+  acc_debug:sprintf ("~s : ~s = ~s; ~s -> ~s | ~s", [ Oid, Node, Value, WordIn, WordOut, Guards ]);
 
 encode_lword_en (?str_lword_edump (Word)) ->
   acc_debug:sprintf ("-- ~s: dump end", [ Word ]);
@@ -344,8 +356,8 @@ encode_lword_en (?str_lword_edump (Word)) ->
 encode_lword_en (?str_lword_bwlist (Word)) ->
   acc_debug:sprintf ("-- ~s: word list begin", [ Word ]);
 
-encode_lword_en (?str_lword_wlist1 (Oid, Class, Stem, Guards)) ->
-  acc_debug:sprintf ("~s (~s) : ~s | ~s", [ Oid, Class, Stem, Guards ]);
+encode_lword_en (?str_lword_wlist1 (Oid, Class, Guards)) ->
+  acc_debug:sprintf ("~s : ~s | ~s", [ Oid, Class, Guards ]);
 
 encode_lword_en (?str_lword_wlist2 (Match, Value)) ->
   acc_debug:sprintf ("  ~s = ~s", [ Match, Value ]);

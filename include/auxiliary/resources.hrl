@@ -1,6 +1,6 @@
 %% @doc Multilanguage strings.
 %% @end
-%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -ifndef (__RESOURCES_HRL__).
@@ -158,14 +158,18 @@
 -define (str_lword_match (O, W, S, M, X, Y, T, V, L), ?str_info (lword, 3, [ O, W, S, M, X, Y, T, V, L ])).
 -define (str_lword_nsubrules (R), ?str_info (lword, 4, [ R ])).
 -define (str_lword_state (O, R, W, G), ?str_info (lword, 5, [ O, R, W, G ])).
--define (str_lword_aclass (C), ?str_info (lword, 6, [ C ])).
--define (str_lword_bdump (W), ?str_info (lword, 7, [ W ])).
--define (str_lword_dump (O, M, V, WI, WO, G), ?str_info (lword, 8, [ O, M, V, WI, WO, G ])).
--define (str_lword_edump (W), ?str_info (lword, 9, [ W ])).
--define (str_lword_bwlist (W), ?str_info (lword, 10, [ W ])).
--define (str_lword_wlist1 (O, C, S, G), ?str_info (lword, 11, [ O, C, S, G ])).
--define (str_lword_wlist2 (M, V), ?str_info (lword, 12, [ M, V ])).
--define (str_lword_ewlist (W), ?str_info (lword, 13, [ W ])).
+-define (str_lword_uclass, ?str_info (lword, 6, [])).
+-define (str_lword_aclass (C), ?str_info (lword, 7, [ C ])).
+-define (str_lword_bdump (W), ?str_info (lword, 8, [ W ])).
+-define (str_lword_iedump (O, N, E, V, WI, WO, G), ?str_info (lword, 9, [ O, N, E, V, WI, WO, G ])).
+-define (str_lword_icdump (O, N, G), ?str_info (lword, 10, [ O, N, G ])).
+-define (str_lword_ivdump (O, N, V, G), ?str_info (lword, 11, [ O, N, V, G ])).
+-define (str_lword_iwdump (O, N, V, WI, WO, G), ?str_info (lword, 12, [ O, N, V, WI, WO, G ])).
+-define (str_lword_edump (W), ?str_info (lword, 13, [ W ])).
+-define (str_lword_bwlist (W), ?str_info (lword, 14, [ W ])).
+-define (str_lword_wlist1 (O, C, G), ?str_info (lword, 15, [ O, C, G ])).
+-define (str_lword_wlist2 (M, V), ?str_info (lword, 16, [ M, V ])).
+-define (str_lword_ewlist (W), ?str_info (lword, 17, [ W ])).
 
 %
 % end

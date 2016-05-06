@@ -99,6 +99,9 @@
  * rules
  */
 
+.vocabulary voc_nouns ;
+.vocabular .inward mn_stem voc_nouns
+
 .match .backward mn_case_number {
   /* nominative case */
   =.                | N.sg. N.nom.
@@ -177,6 +180,6 @@
   +nta    | N.3p.pl.o.
 }
 
-.match .forward m_noun {
-  stem mn_vowel mn_owner mn_case_number | n. noun
+.match .inward-void m_noun {
+  mn_stem mn_vowel mn_owner mn_case_number | n. noun
 }

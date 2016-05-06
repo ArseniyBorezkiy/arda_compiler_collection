@@ -1,6 +1,6 @@
 %% @doc Dynamically described model's vocabulary module.
 %% @end
-%% @author Borezkiy Arseniy Petrovich <apborezkiy1990@gmail.com>
+%% @author Borezkiy Arseniy Petrovich <apborezkiy@gmail.com>
 %% @copyright Elen Evenstar, 2016
 
 -module (am_voc).
@@ -97,25 +97,31 @@ find_stem (Server, Voc, Stem) ->
   Server     :: atom (),
   Voc        :: string (),
   Word       :: string (),
-  Direction  :: direction_t ()
+  VocType    :: voc_type_t ()
 ) -> list (gas_entry_t ()).
 
-select_stems (Server, Voc, Word, Direction) ->
+select_stems (Server, Voc, Word, VocType) ->
   ?validate_list (Voc),
   ?validate_list (Word),
-  ?validate (Direction, [ prefix, postfix ]),
+  ?validate (VocType, [ exact, left, right ]),
   Key    = #stem_k { voc = Voc, stem = '_' },
   Value  = #stem_v { guards = '_' },
   Filter =
     fun
       (#gas_entry { k = #stem_k { stem = Stem }})
-        when Direction == prefix ->
+        when VocType == exact ->
+          case string:str (Word, Stem) of
+            1 when length (Word) =:= length (Stem) -> true;
+            _ -> false
+          end;
+      (#gas_entry { k = #stem_k { stem = Stem }})
+        when VocType == left ->
           case string:str (Word, Stem) of
             1 -> true;
             _ -> false
           end;
-       (#gas_entry { k = #stem_k { stem = Stem }})
-        when Direction == postfix ->
+      (#gas_entry { k = #stem_k { stem = Stem }})
+        when VocType == right ->
           Pos = length (Word) - length (Stem) + 1,
           case string:rstr (Word, Stem) of
             Pos when Pos > 0 -> true;

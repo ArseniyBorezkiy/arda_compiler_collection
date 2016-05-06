@@ -1,16 +1,16 @@
 /*
- * Quenya grammar reference.
+ * Lingua Latina grammar reference.
  * Borezkiy Arseniy Petrovich.
  */
  
-.global /* lang.qu */
+.global /* lang.lat */
 
-.language quenya 1 100
+.language latina 1 100
 .compiler 1 0
 
-/* ==========================
- * QUENYA LANGUAGE DEFINITION
- * ========================== */
+/* =================================
+ * LINGUA LATINA LANGUAGE DEFINITION
+ * ================================= */
 
 .attribute pars_orationis 0 {
   n.   = "the noun"
@@ -19,21 +19,21 @@
 }
 
 .include "etc.qu.txt"
-.include "adj.qu.txt"
-.include "noun.qu.txt"
+/* .include "adj.qu.txt" */
+/* .include "noun.qu.txt" */
 .include "verb.qu.txt"
 
 .global
 
 .match .inward-void main {
-  m_noun
-  m_adjective
+  /* m_noun */
+  /* m_adjective */
   m_verb
 }
 
 .target main
 
-.include "voc.qu.txt"
+.include "voc.lat.txt"
 
 /* ==========================
  * END OF LANGUAGE DEFINITION
