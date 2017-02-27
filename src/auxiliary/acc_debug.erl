@@ -117,18 +117,23 @@ parse_int (String) ->
 
 init ({ File, Levf, Levc, Lang }) ->
   process_flag (trap_exit, true),
-  { ok, Handle } = file:open (File, [ append ]),
-  { Year, Month, Day } = erlang:date (),
-  { Hour, Min, Sec }   = erlang:time(),
-  Format   = "~p.~p.~p at ~p:~p:~p",
-  Args     = [ ?BC_VERSION, ?FC_VERSION, Day, Month, Year, Hour, Min, Sec ],
-  log_entry (Handle, "~n*** ", ?MODULE, "acc ~p.~p started " ++ Format, Args),
   Greeting = "Arda compiler collection server ~p.~p.~n~n",
   io:format (Greeting, [ ?BC_VERSION, ?FC_VERSION ]),
-  { ok, #state { c_level  = Levc,
-                 f_level  = Levf,
-                 handle   = Handle,
-                 language = Lang } }.
+  case file:open (File, [ append ]) of
+	{ ok, Handle } ->
+	  { Year, Month, Day } = erlang:date (),
+	  { Hour, Min, Sec }   = erlang:time(),
+	  Format   = "~p.~p.~p at ~p:~p:~p",
+	  Args     = [ ?BC_VERSION, ?FC_VERSION, Day, Month, Year, Hour, Min, Sec ],
+	  log_entry (Handle, "~n*** ", ?MODULE, "acc ~p.~p started " ++ Format, Args),
+	  { ok, #state { c_level  = Levc,
+					 f_level  = Levf,
+					 handle   = Handle,
+					 language = Lang } };
+	_ ->
+	  io:format("File not found: ~s~n", [ File ]),
+	  { stop, file_not_found }
+  end.
 
 %
 % dispatchers
