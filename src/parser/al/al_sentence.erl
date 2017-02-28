@@ -96,8 +96,11 @@ format_long ([ { Target, Words } | Tail ], Text) ->
       false -> Words;
       true  ->
         Length = length (Words),
-        Random = random:uniform (Length),
-        [ lists:nth (Random, Words) ]
+		case Length of
+		  0 -> [];
+          _ -> Random = random:uniform (Length),
+            [ lists:nth (Random, Words) ]
+		end
     end,
   Subtext = do_format_long (Subwords, ""),
   NewText = acc_debug:sprintf ("~s~s {~n~s}~n", [ Text, Target, Subtext ]),
@@ -162,8 +165,12 @@ format_short ([ { Target, Words } | Tail ], Text) ->
       false -> Words;
       true  ->
         Length = length (Words),
-        Random = random:uniform (Length),
-        [ lists:nth (Random, Words) ]
+		case Length of
+		  0 -> [];
+		  _ ->
+            Random = random:uniform (Length),
+            [ lists:nth (Random, Words) ]
+		end
     end,
   Subtext = do_format_short (Subwords, ""),
   NewText = acc_debug:sprintf ("~s~s {~n~s}~n", [ Text, Target, Subtext ]),

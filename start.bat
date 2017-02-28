@@ -1,6 +1,7 @@
 @echo off
 
 SET ROOT=%~dp0
+SET QU_DIR=%ROOT%\var\tests.qu
 
 call %ROOT%\priv\common.bat
 
