@@ -252,6 +252,7 @@ horizontal ([ Entry | Tail ], Guards1, Word1, Oid1, Cur1, Dst)
       Vertical =
         fun (Horizontal, Y1) ->
           Guards2 = al_model:select_guards (Name, Y1),
+		  io:format("@@@@@ ~p", [Y1]),
           Y2      = Y1 + 1,
           case is_conflict (Guards1, Guards2) of
             true  -> Y2;
@@ -270,7 +271,8 @@ horizontal ([ Entry | Tail ], Guards1, Word1, Oid1, Cur1, Dst)
                 end,
               Cur2 = [ { [], [], [] } | Cur1 ],
               Stop = construct_stop_rule (Name, D, Key, Value, C),
-              horizontal (Horizontal ++ [ Stop ] ++ Tail, Guards3, Word1, Oid3, Cur2, Dst)
+              horizontal (Horizontal ++ [ Stop ] ++ Tail, Guards3, Word1, Oid3, Cur2, Dst),
+			  Y2
           end
         end,
       lists:foldl (Vertical, 1, Subrules)
